@@ -11,40 +11,33 @@ object Possy {
     val possiblePaths: List[List[(Int, Int)]] = this.possiblePaths(gridValues, path)
     val distancesPowed: List[List[List[Int]]] = this.distancesPowed(possiblePaths)
     println("distancesPowed " + distancesPowed)
-    val totalDistancesPowed = ListBuffer[ListBuffer[Int]]()
+    val totalDistancesPowed = collection.mutable.Map[(Int, Int), ListBuffer[(Int, Int, Int)]]()
     var i = 0
-    var j = 0
-    var k = 0
-    var totalDistancePowed = ListBuffer[Int]()
-    var distanceSum = 0
     while (i < distancesPowed.size) {
       val di: List[List[Int]] = distancesPowed(i)
-      val dj = di(j)
-      val dk = dj(k)
-      distanceSum = distanceSum + dk
-      totalDistancePowed.append(0)
-      /*
+      var j = 0
       while (j < di.size) {
         val dj: List[Int] = di(j)
-        while(k < dj.size) {
+        var k = 0
+        while (k < dj.size) {
           val dk: Int = dj(k)
-
+          val key = (j,k)
+          val value = totalDistancesPowed.get(key) match {
+            case None => {
+              val value = ListBuffer[(Int, Int, Int)]()
+              totalDistancesPowed.put(key, value)
+              value
+            }
+            case Some(value) => value
+          }
+          value.append((j,k,dk))
+          k += 1
         }
-        j+=1
+        j += 1
       }
-      */
-      if (i < distancesPowed.size) {
-        i += 1
-      } else {
-        totalDistancePowed.prepend(distanceSum)
-        totalDistancesPowed.append(totalDistancePowed)
-        if (j == dj.size) {
-
-        }
-
-      }
+      i += 1
     }
-    println("totalDistancesPowed " + totalDistancesPowed)
+    println("totalDistancesPowed " + totalDistancesPowed.values)
     possiblePaths.map(pp => {
       pp.headOption.getOrElse((-1, -1))
     })

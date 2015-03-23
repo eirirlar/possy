@@ -28,7 +28,7 @@ class TestPossy {
 object TestPossy {
   val elevationGrid = List(
     List(1, 0, 2, 3, 4, 5, 8, 7, 6, 5, 4),
-    List(1, 2, 4, 3, 4, 5, 5, 6, 7, 5, 4),
+    List(1, 0, 9, 3, 4, 5, 5, 6, 7, 5, 4),
     List(0, 1, 2, 2, 3, 4, 6, 7, 8, 7, 6),
     List(3, 2, 2, 2, 2, 2, 3, 4, 3, 4, 3),
     List(4, 4, 3, 3, 2, 2, 3, 4, 3, 4, 3),
