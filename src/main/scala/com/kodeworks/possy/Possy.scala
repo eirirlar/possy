@@ -3,10 +3,6 @@ package com.kodeworks.possy
 import scala.collection.mutable.ListBuffer
 
 object Possy {
-  def calculatePathMin(gridValues: List[List[Int]], path: List[Int]) = {
-    List()
-  }
-
   def calculatePath(gridValues: List[List[Int]], path: List[Int]): List[(Int, Int)] = {
     val possiblePaths: List[List[(Int, Int)]] = this.possiblePaths(gridValues, path)
     val distancesPowed: List[List[List[Int]]] = this.distancesPowed(possiblePaths)
