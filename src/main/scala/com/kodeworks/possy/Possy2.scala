@@ -4,42 +4,10 @@ import scala.collection.mutable.ListBuffer
 import Dijkstra._
 
 object Possy2 {
-  /*
-      def calculatePath(grid: List[List[Int]], values: List[Int]): List[(Int, Int)] = {
-        val pps = ListBuffer[ListBuffer[(Int, Int)]]()
-        var i = 0
-        while (i < values.size) {
-          val value: Int = values(i)
-          val locations: List[(Int, Int)] = discover(grid, value)
-          //TODO empty locations
-          if (pps.isEmpty) {
-            pps.appendAll(locations.map(ListBuffer(_)))
-          } else {
-            var ppsCopy = pps.map(_.clone)
-            pps.foreach(_.append(locations.head))
-            val numCopies = locations.size - 1
-            var j = 0
-            while (j < numCopies) {
-              pps.appendAll(ppsCopy.map(pp => {
-                val ppCopy = pp.clone
-                ppCopy.append(locations(j+1))
-                ppCopy
-              }))
-              j+=1
-            }
-          }
-          i += 1
-        }
-
-        println("possible paths " + pps)
-        List()
-      }
-    */
-  def calculatePath(grid: List[List[Int]], values: List[Int]): List[(Int, Int)] = {
+  def calculatePath(grid: List[List[Int]], values: List[Int]): (Double, List[(Int, Int)]) = {
     val start = 0xffff0000
     val end = 0x0000ffff
-    //lookup: Map[Int, List[(Double, Int)]], fringe: List[Path[Int]], dest: Key,
-    val graph = collection.mutable.Map[Int, List[(Double, Int)]]() //, fringe: List[Path[Int]], dest: Key,
+    val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
     var valueMappedToGridIndicesPrev: List[Int] = discover(grid, values(0))
     val valueMappedToGridIndicesList = ListBuffer[List[Int]](valueMappedToGridIndicesPrev)
 
@@ -90,9 +58,17 @@ object Possy2 {
     val fringe = List((0d, List(start)))
 
     val shortestPath: (Double, List[Int]) = dijkstra(graph.toMap, fringe, end, Set())
-    println(shortestPath)
-    //TODO split dijkstra output and look up in valueMappedToGridIndicesList to find grid indices
-    List()
+    println("shortestPath: " + shortestPath)
+
+    val shortestPathIndices = shortestPath._2.slice(1, shortestPath._2.size - 1).map(combined => split(combined))
+    println("shortestPathIndices " + shortestPathIndices)
+
+    val shortestPathGridIndices = shortestPathIndices.map(s => valueMappedToGridIndicesList(s._1)(s._2))
+    println("shortestPathGridIndices " + shortestPathGridIndices)
+
+    val shortestPathGridCoords = shortestPathGridIndices.map(s => toGridCoords(grid.size, s))
+    println("shortestPathGridCoords " + shortestPathGridCoords)
+    (shortestPath._1 , shortestPathGridCoords)
   }
 
   def discover(grid: List[List[Int]], target: Int): List[Int] = {
@@ -104,7 +80,7 @@ object Possy2 {
       while (j < js.size) {
         val value = js(j)
         //TODO match on other criteria (range?) and include probability of match
-        if (target == value) l.append((i * grid.size + j))
+        if (target == value) l.append(toGridIndex(grid.size, i, j))
         j += 1
       }
       i += 1
@@ -112,13 +88,11 @@ object Possy2 {
     l.toList
   }
 
-  def distance(gridWidth: Int, fromGridIndex: Int, toGridIndex: Int): Int = {
-    val x0 = fromGridIndex / gridWidth
-    val y0 = fromGridIndex % gridWidth
-    val x1 = toGridIndex / gridWidth
-    val y1 = toGridIndex % gridWidth
-    val x = x1 - x0
-    val y = y1 - y0
+  def distance(width: Int, fromIndex: Int, toIndex: Int): Int = {
+    val xy0 = toGridCoords(width, fromIndex)
+    val xy1 = toGridCoords(width, toIndex)
+    val x = xy1._1 - xy0._1
+    val y = xy1._2 - xy0._2
     x * x + y * y
   }
 
@@ -129,5 +103,10 @@ object Possy2 {
   def split(k: Int): (Int, Int) = {
     (k & 0x0000ffff, (k >> 16) & 0x0000ffff)
   }
+
+  def toGridIndex(gridWidth: Int, x: Int, y: Int): Int = x * gridWidth + y
+
+  def toGridCoords(gridWidth: Int, gridIndex: Int): (Int, Int) = (gridIndex % gridWidth, gridIndex / gridWidth)
+
 
 }
