@@ -13,6 +13,6 @@ object Dijkstra {
         dijkstra(lookup, sorted_fringe, dest, visited + key)
       }
     }
-    case Nil => (0, List())
+    case Nil => (0d, List())
   }
 }
