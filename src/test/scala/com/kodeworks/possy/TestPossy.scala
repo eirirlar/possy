@@ -7,55 +7,50 @@ class TestPossy {
   import TestPossy._
 
   @Test
-  def test1 {
-
-    val calculatedPath = Possy.calculatePath(grid, values)
-
-    println("path: " + path)
-    println("pathElevations " + values)
-    println("calculatedPath " + calculatedPath)
-  }
-
-  @Test
-  def test2 {
-    val calculatedPath = Possy2.calculatePath(grid, values)
+  def testPossy {
+    val g = grid
+    val v = values
+    val start = System.nanoTime
+    val calculatedPath = Possy.calculatePath(g, v)
+    val end = System.nanoTime
+    println((end - start) + " nanoseconds")
     println("pathElevations " + values)
     println("path vs calculatedPath:\n" + path + "\n" + calculatedPath._2)
   }
 
   @Test
   def testDistance {
-    Assert.assertEquals(5, Possy2.distance(3, 5, 6))
+    Assert.assertEquals(5, Possy.distance(3, 5, 6))
   }
 
   @Test
   def testCombineSplit {
     var i, j = 0
-    var c = Possy2.combine(i, j)
+    var c = Possy.combine(i, j)
     println("c " + c.toBinaryString + " / " + c.toHexString)
     Assert.assertEquals(0, c)
-    Assert.assertEquals((i, j), Possy2.split(c))
+    Assert.assertEquals((i, j), Possy.split(c))
 
     i = 0
     j = 1
-    c = Possy2.combine(i, j)
+    c = Possy.combine(i, j)
     println("c " + c.toBinaryString + " / " + c.toHexString)
     Assert.assertEquals(0x00010000, c)
-    Assert.assertEquals((i, j), Possy2.split(c))
+    Assert.assertEquals((i, j), Possy.split(c))
 
     i = 65535
     j = 65535
-    c = Possy2.combine(i, j)
+    c = Possy.combine(i, j)
     println("c " + c.toBinaryString + " / " + c.toHexString)
     Assert.assertEquals(0xffffffff, c)
-    Assert.assertEquals((i, j), Possy2.split(c))
+    Assert.assertEquals((i, j), Possy.split(c))
 
     i = 0x00000d0c
     j = 0x0000d0c0
-    c = Possy2.combine(i, j)
+    c = Possy.combine(i, j)
     println("c " + c.toBinaryString + " / " + c.toHexString)
     Assert.assertEquals(0xd0c00d0c, c)
-    Assert.assertEquals((i, j), Possy2.split(c))
+    Assert.assertEquals((i, j), Possy.split(c))
   }
 
 }
