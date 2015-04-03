@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 import Dijkstra._
 
 object Possy {
-  //TODO support dynamic version, same graph but with nodes removed in beginning and/or added in end
+  //TODO support dynamic version, same graph but with nodes removed in beginning or added in end
   def calculatePath(grid: List[List[Int]], values: List[Int]): (Double, List[(Int, Int)]) = {
     val start = 0xffff0000
     val end = 0x0000ffff

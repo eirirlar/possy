@@ -7,44 +7,15 @@
     <groupId>com.kodeworks</groupId>
     <artifactId>possy</artifactId>
     <version>0.1-SNAPSHOT</version>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>net.alchim31.maven</groupId>
-                <artifactId>scala-maven-plugin</artifactId>
-                <version>3.1.6</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                            <goal>testCompile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <jvmArgs>
-                        <jvmArg>-Xms64m</jvmArg>
-                        <jvmArg>-Xmx1024m</jvmArg>
-                    </jvmArgs>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-    <dependencies>
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>2.11.6</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.1.2</version>
-        </dependency>
-    </dependencies>
+<packaging>pom</packaging>
+    <properties>
+        <scala-maven-plugin.version>3.1.6</scala-maven-plugin.version>
+        <scala.version>2.11.6</scala.version>
+        <junit.version>4.12</junit.version>
+        <logback.version>1.1.2</logback.version>
+    </properties>
+    <modules>
+        <module>algorithm</module>
+        <module>demparser</module>
+    </modules>
 </project>
