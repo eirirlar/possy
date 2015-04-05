@@ -7,14 +7,14 @@ case class Dem(
 
 case class DemHeader(
                       name: String,
-                    demLevel:Int, //1=DEM-1
-                      elevationPattern:Int, //1=regular
-                      planimetricReferenceSystem:Int, //1=UTM
+                      demLevel: Int, //1=DEM-1
+                      elevationPattern: Int, //1=regular
+                      planimetricReferenceSystem: Int, //1=UTM
                       zone: Int,
-                      mapProjectionParameters:String,
-                      unitOfResolutionGroundGrid: String, //2=meter
-                      unitOfResolutionElevation: String, //2=meter
-                      numberOfSidesInPolygon:String, // must be 4
+                      mapProjectionParameters: String,
+                      unitOfResolutionGroundGrid: Int, //2=meter
+                      unitOfResolutionElevation: Int, //2=meter
+                      numberOfSidesInPolygon: Int, // must be 4
                       eastingOfSW: Float,
                       northingOfSW: Float,
                       eastingOfNW: Float,
@@ -25,9 +25,12 @@ case class DemHeader(
                       northingOfSE: Float,
                       minElevation: Float,
                       maxElevation: Float,
-                      resolutionPerGridCellEW: Float,
-                      resolutionPerGridCellNS: Float,
-                      multiplier: Float,
+                      angle: Float, //CCW angle in radians from ground planimetric reference to local reference
+                      accuracyCode: Int, //0=unknown
+                      resolutionX: Float,
+                      resolutionY: Float,
+                      resolutionZ: Float,
+                      numberOfRows: Int,
                       numberOfColumns: Int
                       )
 

@@ -9,13 +9,15 @@ Source http://nationalmap.gov/standards/pdf/2DEM0198.PDF
  */
 object DemParser extends RegexParsers {
 
+  override val skipWhitespace = false
+
   val name = ".{135}".r ^^ {
     _.trim
   }
 
   val any: Parser[String] = ".*".r
 
-  def anyN(n: Int): Parser[String] = s"[.\\s]{$n}".r
+  def anyN(n: Int): Parser[String] = s".{$n}".r
 
   val any3 = anyN(3)
 
@@ -29,9 +31,9 @@ object DemParser extends RegexParsers {
 
   val any132 = anyN(132)
 
-  val nameSpace = anyN(10)
+  val nameSpace = anyN(9)
 
-  val mapProjectionParameters = anyN(353) //15 fields set to zero when UTM
+  val mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
 
   val resolution = anyN(12)
 
@@ -41,7 +43,7 @@ object DemParser extends RegexParsers {
 
   val float13 = floatN(13)
 
-  val float23 = floatN(23)
+  val float24 = floatN(24)
 
   def intN(n: Int): Parser[Int] = s"[\\d ]{$n}".r ^^ (_.trim.toInt)
 
@@ -58,17 +60,17 @@ object DemParser extends RegexParsers {
   val int9 = intN(9)
 
   val zone = int6
-
   val header =
-    name ~ nameSpace ~ int6 ~ int6 ~ int5 ~ zone ~ mapProjectionParameters ~ anyN(15) /*~ any6 ~ any6 ~ any6 */ ~ float23 ~ float23 ~ float23 ~ float23 ~
-      float23 ~ float23 ~ float23 ~ float23 ~ float23 ~ float23 ~ any23 ~ float12 ~ float12 ~
-      float13 ~ any3 ~ int8 ~ any132 ^^ {
-      case name ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid /*~ unitOfResolutionElevation ~ numberOfSidesInPolygon*/ ~ eastingOfSW ~ northingOfSW ~ eastingOfNW ~ northingOfNW ~
-        eastingOfNE ~ northingOfNE ~ eastingOfSE ~ northingOfSE ~ minElevation ~ maxElevation ~ _ ~ resolutionPerGridCellEW ~ resolutionPerGridCellNS ~
-        multiplier ~ _ ~ numberOfColumns ~ _ =>
-        DemHeader(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, "", "", /*unitOfResolutionElevation, numberOfSidesInPolygon, */ eastingOfSW, northingOfSW, eastingOfNW, northingOfNW,
-          eastingOfNE, northingOfNE, eastingOfSE, northingOfSE, minElevation, maxElevation, resolutionPerGridCellEW, resolutionPerGridCellNS,
-          multiplier, numberOfColumns)
+    name ~ nameSpace ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
+      float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~
+      int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ any ^^ {
+      case name ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
+        eastingOfSW ~ northingOfSW ~ eastingOfNW ~ northingOfNW ~ eastingOfNE ~ northingOfNE ~ eastingOfSE ~ northingOfSE ~ minElevation ~ maxElevation ~ angle ~
+        accuracyCode ~ resolutionX ~ resolutionY ~ resolutionZ ~ numberOfRows ~ numberOfColumns
+        /*~ _ ~ resolutionPerGridCellEW ~ resolutionPerGridCellNS ~multiplier ~ _ ~ numberOfColumns */ ~ _ =>
+        DemHeader(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, unitOfResolutionElevation, numberOfSidesInPolygon,
+          eastingOfSW, northingOfSW, eastingOfNW, northingOfNW, eastingOfNE, northingOfNE, eastingOfSE, northingOfSE, minElevation, maxElevation, angle,
+          accuracyCode, resolutionX, resolutionY, resolutionZ, numberOfRows, numberOfColumns)
     }
 
   //row, column, num cols, ? (1),
