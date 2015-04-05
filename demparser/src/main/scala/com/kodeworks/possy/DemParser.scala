@@ -60,28 +60,29 @@ object DemParser extends RegexParsers {
   val int9 = intN(9)
 
   val zone = int6
-  val header =
+
+  val recordTypeA =
     name ~ nameSpace ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
       float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~
-      int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ any ^^ {
+      int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ anyN(160) ^^ {
       case name ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
         eastingOfSW ~ northingOfSW ~ eastingOfNW ~ northingOfNW ~ eastingOfNE ~ northingOfNE ~ eastingOfSE ~ northingOfSE ~ minElevation ~ maxElevation ~ angle ~
-        accuracyCode ~ resolutionX ~ resolutionY ~ resolutionZ ~ numberOfRows ~ numberOfColumns
-        /*~ _ ~ resolutionPerGridCellEW ~ resolutionPerGridCellNS ~multiplier ~ _ ~ numberOfColumns */ ~ _ =>
-        DemHeader(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, unitOfResolutionElevation, numberOfSidesInPolygon,
+        accuracyCode ~ resolutionX ~ resolutionY ~ resolutionZ ~ numberOfRows ~ numberOfColumns ~ _ =>
+        RecordTypeA(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, unitOfResolutionElevation, numberOfSidesInPolygon,
           eastingOfSW, northingOfSW, eastingOfNW, northingOfNW, eastingOfNE, northingOfNE, eastingOfSE, northingOfSE, minElevation, maxElevation, angle,
           accuracyCode, resolutionX, resolutionY, resolutionZ, numberOfRows, numberOfColumns)
     }
 
-  //row, column, num cols, ? (1),
-  val block = int6 ~ int3 ~ int9 ~ any3 ~ anyN(500) ^^ {
-    case rowNumber ~ columnNumber ~ numberOfColumns ~ _ ~ any => Block(rowNumber, columnNumber, numberOfColumns, any)
-  }
+  val recordTypeB =
+    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ repN(146, int6) ~ any ^^ {
+      case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
+        RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks.toList)
+    }
 
 
   val dem =
-    header ~ //TODO eirirlar start block parsing here
-      block ~
+    recordTypeA ~
+      recordTypeB ~
       any ^^ {
       case header ~ block ~ _ =>
         Dem(header, block)
@@ -100,3 +101,4 @@ object DemParser extends RegexParsers {
   }
 }
 
+//    00    00   0   0 0 0 0 3   0   0 0 0 0 00.00                                                                                                                     1
