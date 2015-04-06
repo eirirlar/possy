@@ -31,6 +31,10 @@ object DemParser extends RegexParsers {
 
   val any132 = anyN(132)
 
+  def blankN(n:Int):Parser[String] = s"\\s{$n}".r
+
+  val blank4 = blankN(4)
+
   val nameSpace = anyN(9)
 
   val mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
@@ -74,11 +78,14 @@ object DemParser extends RegexParsers {
     }
 
   val recordTypeB =
-    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ repN(146, int6) ~ any ^^ {
+    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ repN(146, int6) ~ blank4 ^^ {
       case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
         RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks.toList)
     }
 
+  val recordTypeB2 =repN(170, int6) ~ blank4 ^^ {
+    case blocks ~ _ => blocks.toList
+  }
 
   val dem =
     recordTypeA ~
