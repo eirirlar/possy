@@ -1,8 +1,8 @@
 package com.kodeworks.possy
 
 case class Dem(
-                header: RecordTypeA,
-                block: RecordTypeB
+                typeA: RecordTypeA,
+                typeBs: List[RecordTypeB]
                 )
 
 case class RecordTypeA(
@@ -44,5 +44,5 @@ case class RecordTypeB(
                         elevationOfLocalDatum: Float,
                         minElevation: Float,
                         maxElevation: Float,
-                        blocks:List[Int] //146 elems in first B record
+                        elevations: List[Int] //146 elems in first B record, 170 in each next typeB
                         )

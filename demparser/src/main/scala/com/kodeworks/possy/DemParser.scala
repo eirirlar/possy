@@ -31,9 +31,11 @@ object DemParser extends RegexParsers {
 
   val any132 = anyN(132)
 
-  def blankN(n:Int):Parser[String] = s"\\s{$n}".r
+  def blankN(n: Int): Parser[String] = s"\\s{$n}".r
 
   val blank4 = blankN(4)
+
+  val blank6 = blankN(6)
 
   val nameSpace = anyN(9)
 
@@ -77,35 +79,42 @@ object DemParser extends RegexParsers {
           accuracyCode, resolutionX, resolutionY, resolutionZ, numberOfRows, numberOfColumns)
     }
 
-  val recordTypeB =
-    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ repN(146, int6) ~ blank4 ^^ {
-      case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
-        RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks.toList)
+  val elevationOpt: DemParser.Parser[Option[Int]] =
+    blank6 ^^ { _ => None } | int6 ^^ {
+      Some(_)
     }
 
-  val recordTypeB2 =repN(170, int6) ~ blank4 ^^ {
+  def elevationOptsN(n: Int): DemParser.Parser[List[Int]] = repN(n, elevationOpt) ^^ (_.flatten)
+
+  val recordTypeBHead: Parser[RecordTypeB] =
+    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(146) ~ blank4 ^^ {
+      case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
+        RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
+    }
+
+  val recordTypeB2: Parser[List[Int]] = elevationOptsN(170) ~ blank4 ^^ {
     case blocks ~ _ => blocks.toList
+  }
+
+  val recordTypeBTail: Parser[List[Int]] = opt(recordTypeB2 ~ recordTypeBTail) ^^ {
+    case Some(recordTypeB2 ~ recordTypeBTail) => recordTypeB2 ++ recordTypeBTail
+    case None => Nil
+  }
+
+  val recordTypeB: Parser[RecordTypeB] = recordTypeBHead ~ recordTypeBTail ^^ {
+    case head ~ tail => head.copy(elevations = head.elevations ++ tail)
   }
 
   val dem =
     recordTypeA ~
-      recordTypeB ~
-      any ^^ {
-      case header ~ block ~ _ =>
-        Dem(header, block)
+      rep(recordTypeB) ^^ {
+      case typeA ~ typeBs =>
+        Dem(typeA, typeBs.toList)
     }
 
 
-  def parseDem(input: Reader): Dem = {
-    val parsed: DemParser.ParseResult[Dem] = parse(dem, input)
-    parsed match {
-      case Success(r, next) =>
-      case Failure(msg, next) => {
-        println(msg)
-      }
-    }
-    parsed.get
+  def parseDem(demString: String): Dem = {
+    parse(dem, demString).get
   }
 }
 
-//    00    00   0   0 0 0 0 3   0   0 0 0 0 00.00                                                                                                                     1
