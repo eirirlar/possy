@@ -17,8 +17,8 @@ define([
     };
 
     $.ajaxSetup({
-        crossDomain: true,
-        xhrFields: {withCredentials: true}
+        crossDomain: true
+        //,xhrFields: {withCredentials: true}
     });
 
     return app;

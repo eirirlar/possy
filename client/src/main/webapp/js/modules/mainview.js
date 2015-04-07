@@ -1,8 +1,9 @@
 define([
-    'app'
+    'app',
+    'modules/gmap'
 ],
 
-function(app) {
+function(app, gmap) {
     var Mainview = app.module();
 
     var defaultLocation = [59.930018, 10.710050];
@@ -14,7 +15,7 @@ function(app) {
             console.log('mainview init');
             this.mapProp = {
                 center: new google.maps.LatLng(defaultLocation[0], defaultLocation[1]),
-                zoom:10,
+                zoom:3,
                 mapTypeId: google.maps.MapTypeId.ROADMAP
             };
 
@@ -44,10 +45,22 @@ function(app) {
         loadClosestElevationIfChanged: function() {
             var center = this.map.getCenter();
             $.ajax(app.root + 'loadClosestElevationIfChanged', {
-                data: {
-                    center: [center.lat(), center.lng()]
-                }
-            })
+                method: 'POST',
+                data: JSON.stringify({lat: center.lat(), lng: center.lng()})
+            }).then(_.bind(function(s) {
+                console.log('big success: ' + s);
+                var rectangle = new google.maps.Rectangle({
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: '#FF0000',
+                    fillOpacity: 0.35,
+                    map: this.map,
+                    bounds: new google.maps.LatLngBounds(
+                        new google.maps.LatLng(s.lat0, s.lng0),
+                        new google.maps.LatLng(s.lat1, s.lng1))
+                });
+            }, this));
             console.log(center);
         }
     });

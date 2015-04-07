@@ -64,6 +64,12 @@
         </dependency>
 
         <dependency>
+            <groupId>io.argonaut</groupId>
+            <artifactId>argonaut_2.11</artifactId>
+            <version>${argonaut.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
