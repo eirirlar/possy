@@ -11,7 +11,6 @@ class PossyActor() extends Actor {
 }
 
 object PossyActor {
-
   case class LoadClosestElevationModel(
                                         lat: Float,
                                         lng: Float
