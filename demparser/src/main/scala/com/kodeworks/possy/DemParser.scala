@@ -11,7 +11,7 @@ object DemParser extends RegexParsers {
 
   override val skipWhitespace = false
 
-  val name = ".{135}".r ^^ {
+  val name = ".{130}".r ^^ {
     _.trim
   }
 
@@ -37,13 +37,24 @@ object DemParser extends RegexParsers {
 
   val blank6 = blankN(6)
 
-  val nameSpace = anyN(9)
+  val blank8 = blankN(8)
+
+  val nameSpace = blank8
 
   val mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
 
   val resolution = anyN(12)
 
-  def floatN(n: Int) = anyN(n) ^^ (_.toFloat)
+  def strictFloatN(n: Int): Parser[Float] = s"((?=-?\\d+?$$)[-\\d]{$n}|(?=-?\\d\\d*\\.\\d+?$$)[-\\d\\.]{$n})".r ^^ (_.toFloat)
+
+  def strictFloatN(nBlank: Int, nFloat: Int): Parser[Float] = s" {$nBlank}".r ~> strictFloatN(nFloat)
+
+  //TODO fix problem with trailing stuff
+  def floatN(n: Int) = guard(anyN(n)) >> (f => {
+    val nFloat = f.trim.length
+    if (0 == nFloat) failure("all blank")
+    else strictFloatN(n - nFloat, nFloat)
+  })
 
   val float12 = floatN(12)
 
@@ -51,7 +62,13 @@ object DemParser extends RegexParsers {
 
   val float24 = floatN(24)
 
-  def intN(n: Int): Parser[Int] = s"[\\d ]{$n}".r ^^ (_.trim.toInt)
+  def strictIntN(nBlank: Int, nInt: Int): Parser[Int] = s" {$nBlank}".r ~> s"\\d{$nInt}".r ^^ (_.toInt)
+
+  def intN(n: Int): Parser[Int] = guard(anyN(n)) >> (i => {
+    val nDigit: Int = i.trim.length
+    if (0 == nDigit) failure("all blank")
+    else strictIntN(n - nDigit, nDigit)
+  })
 
   val int3 = intN(3)
 
@@ -68,10 +85,10 @@ object DemParser extends RegexParsers {
   val zone = int6
 
   val recordTypeA =
-    name ~ nameSpace ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
+    name ~ int6 ~ nameSpace ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
       float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~
       int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ anyN(160) ^^ {
-      case name ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
+      case name ~ _ ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
         eastingOfSW ~ northingOfSW ~ eastingOfNW ~ northingOfNW ~ eastingOfNE ~ northingOfNE ~ eastingOfSE ~ northingOfSE ~ minElevation ~ maxElevation ~ angle ~
         accuracyCode ~ resolutionX ~ resolutionY ~ resolutionZ ~ numberOfRows ~ numberOfColumns ~ _ =>
         RecordTypeA(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, unitOfResolutionElevation, numberOfSidesInPolygon,
