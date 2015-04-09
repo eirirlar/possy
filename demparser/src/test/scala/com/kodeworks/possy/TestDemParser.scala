@@ -1,12 +1,13 @@
 package com.kodeworks.possy
 
+import java.nio.CharBuffer
+
+import com.kodeworks.possy.DemParser._
+import com.kodeworks.possy.TestDemParser._
+import org.junit.Assert._
 import org.junit.{Assert, Test}
 
-import scala.io.{Codec, BufferedSource, Source}
-import scala.util.Success
-import DemParser._
-import TestDemParser._
-import Assert._
+import scala.io.{BufferedSource, Codec, Source}
 
 class TestDemParser {
   @Test
@@ -25,25 +26,25 @@ class TestDemParser {
 
   @Test
   def testRecordTypeB2 {
-    val parsed = parse(recordTypeB2, recordTypeB2String)
+    val parsed = parse(recordTypeBTailElevations, recordTypeB2String)
     println(parsed)
     parsed.get
   }
 
   @Test
   def testRecordTypeBTail {
-    val p = parse(recordTypeBTail, recordTypeB2String + recordTypeB3String)
+    val p = parse(recordTypeBTailBak, recordTypeB2String + recordTypeB3String)
     println(p)
     p.get
   }
 
   @Test
   def testRecordTypeBTailFail {
-    val p = parse(recordTypeBTail, recordTypeAString)
+    val p = parse(recordTypeBTailBak, recordTypeAString)
     println(p)
     assertTrue(p.isInstanceOf[Failure])
 
-    val p2 = parse(recordTypeBTail, recordTypeBString)
+    val p2 = parse(recordTypeBTailBak, recordTypeBString)
     println(p2)
     assertTrue(p2.isInstanceOf[Failure])
   }
@@ -65,7 +66,7 @@ class TestDemParser {
   @Test
   def testDemParser {
     val f: BufferedSource = Source.fromFile("C:/dev/src/data/dem/7002_2_10m_z33.dem")(Codec.ISO8859)
-    val string= f.mkString
+    val string = f.mkString
     val p = parseDem(string)
     f.close
     println("typeA " + p.typeA)
@@ -74,10 +75,35 @@ class TestDemParser {
     assertTrue(p.typeBs.forall(_.elevations.size == p.typeA.numberOfColumns))
   }
 
+
+  @Test
+  def testChunkedDemParser {
+    val reader = Source.fromFile("C:/dev/src/data/dem/7002_2_10m_z33.dem")(Codec.ISO8859)
+    val start = System.currentTimeMillis
+    var last = start
+    var i = 0
+    val p = reader.grouped(1024).map(grp => {
+      val p = parse(record, grp.mkString).get
+      if(p.isInstanceOf[RecordTypeBHead]){
+        i+=1
+        if(i % 100 == 0) {
+          println("column " + p.asInstanceOf[RecordTypeBHead].columnNumber + " in " + (System.currentTimeMillis() - last) + " millis, free: " + (Runtime.getRuntime.freeMemory() / 1024L / 1024L )  + " MB")
+          last = System.currentTimeMillis()
+          if(i % 500 == 0) System.gc()
+        }
+      }
+      p
+    }).toList
+    val end = System.currentTimeMillis
+    println("chunked parse took " + (end - start) + " millis")
+    println(p.head)
+    reader.close
+  }
+
   @Test
   def testFailingBlock {
     val f: BufferedSource = Source.fromFile("C:/dev/src/data/dem/7002_2_row30-32.txt")(Codec.ISO8859)
-    val string= f.mkString
+    val string = f.mkString
     val p = parse(rep(recordTypeB) ^^ (_.toList), string)
     f.close
     println(p)
@@ -157,7 +183,7 @@ class TestDemParser {
 
     p = parse(intN(2), "  3")
     assertTrue(p.isInstanceOf[Failure])
-    
+
     p = parse(int6, "    -1  ")
     p.get
   }

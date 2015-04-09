@@ -66,6 +66,20 @@ object DemParser extends RegexParsers {
 
   def float24 = floatN(24)
 
+  def strictShortStringN(n: Int): Parser[String] = s"-\\d{${math.max(1, n - 1)}}|\\d{$n}".r
+
+  def strictShortN(n: Int): Parser[Short] = strictShortStringN(n) ^^ (_.toShort)
+
+  def strictShortN(nBlank: Int, nShort: Int): Parser[Short] = s" {$nBlank}".r ~> strictShortN(nShort)
+
+  def shortN(n: Int): Parser[Short] = guard(anyN(n)) >> (i => {
+    val nDigit: Int = i.trim.length
+    if (0 == nDigit) failure("all blank")
+    else strictShortN(n - nDigit, nDigit)
+  })
+
+  def short6 = shortN(6)
+
   def strictIntStringN(n: Int): Parser[String] = s"-\\d{${math.max(1, n - 1)}}|\\d{$n}".r
 
   def strictIntN(n: Int): Parser[Int] = strictIntStringN(n) ^^ (_.toInt)
@@ -104,32 +118,36 @@ object DemParser extends RegexParsers {
           accuracyCode, resolutionX, resolutionY, resolutionZ, numberOfRows, numberOfColumns)
     }
 
-  def elevationOpt: DemParser.Parser[Option[Int]] =
-    blank6 ^^ { _ => None } | int6 ^^ {
+  def elevationOpt: DemParser.Parser[Option[Short]] =
+    blank6 ^^ { _ => None } | short6 ^^ {
       Some(_)
     }
 
-  def elevationOptsN(n: Int): DemParser.Parser[List[Int]] = repN(n, elevationOpt) ^^ (_.flatten)
+  def elevationOptsN(n: Int): DemParser.Parser[List[Short]] = repN(n, elevationOpt) ^^ (_.flatten)
 
-  def recordTypeBHead: Parser[RecordTypeB] =
+  def recordTypeBHead: Parser[RecordTypeBHead] =
     int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(146) ~ blank4 ^^ {
       case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
-        RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
+        RecordTypeBHead(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
     }
 
-  def recordTypeB2: Parser[List[Int]] = elevationOptsN(170) ~ blank4 ^^ {
+  def recordTypeBTailElevations: Parser[List[Short]] = elevationOptsN(170) ~ blank4 ^^ {
     case blocks ~ _ => blocks.toList
   }
 
-  def recordTypeBTail: Parser[List[Int]] = recordTypeB2 ~ opt(recordTypeBTail) ^^ {
+  def recordTypeBTail: Parser[RecordTypeBTail] = recordTypeBTailElevations ^^ (RecordTypeBTail(_))
+
+  def recordTypeBTailBak: Parser[List[Short]] = recordTypeBTailElevations ~ opt(recordTypeBTailBak) ^^ {
     case recordTypeB2 ~ Some(recordTypeBTail) => recordTypeB2 ++ recordTypeBTail
     case recordTypeB2 ~ _ => recordTypeB2
   }
 
-  def recordTypeB: Parser[RecordTypeB] = recordTypeBHead ~ opt(recordTypeBTail) ^^ {
+  def recordTypeB: Parser[RecordTypeBHead] = recordTypeBHead ~ opt(recordTypeBTailBak) ^^ {
     case head ~ Some(tail) => head.copy(elevations = head.elevations ++ tail)
     case head ~ _ => head
   }
+
+  def record: Parser[Record] = recordTypeBTail | recordTypeBHead | recordTypeA
 
   def dem =
     recordTypeA ~

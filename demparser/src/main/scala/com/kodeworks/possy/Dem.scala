@@ -2,8 +2,10 @@ package com.kodeworks.possy
 
 case class Dem(
                 typeA: RecordTypeA,
-                typeBs: List[RecordTypeB]
+                typeBs: List[RecordTypeBHead]
                 )
+
+sealed trait Record
 
 case class RecordTypeA(
                         name: String,
@@ -32,9 +34,9 @@ case class RecordTypeA(
                         resolutionZ: Float,
                         numberOfRows: Int,
                         numberOfColumns: Int
-                        )
+                        ) extends Record
 
-case class RecordTypeB(
+case class RecordTypeBHead(
                         rowNumber: Int,
                         columnNumber: Int,
                         numMElevations: Int,
@@ -44,5 +46,9 @@ case class RecordTypeB(
                         elevationOfLocalDatum: Float,
                         minElevation: Float,
                         maxElevation: Float,
-                        elevations: List[Int] //146 elems in first B record, 170 in each next typeB
-                        )
+                        elevations: List[Short] //146 elems in first B record, 170 in each next typeB
+                        ) extends Record
+
+case class RecordTypeBTail(
+                          elevations: List[Short]
+                            ) extends Record

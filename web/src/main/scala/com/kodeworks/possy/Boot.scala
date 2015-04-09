@@ -1,23 +1,20 @@
 package com.kodeworks.possy
 
 import java.net.URLDecoder
-import akka.http.model.japi.ResponseEntity
-import akka.util.{ByteString, Timeout}
-import com.kodeworks.possy.PossyActor.ElevationModel
-import com.typesafe.config.ConfigFactory
-
-import concurrent.duration._
 
 import akka.actor.{ActorSystem, Props}
-import akka.pattern.ask
 import akka.http.Http
 import akka.http.model.headers.HttpOriginRange.*
 import akka.http.model.{ContentTypes, HttpEntity, HttpResponse, headers}
+import akka.pattern.ask
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{Sink, Source}
+import akka.util.{ByteString, Timeout}
+import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object Boot extends App {
   val log = LoggerFactory.getLogger(Boot.getClass)
@@ -43,7 +40,8 @@ object Boot extends App {
     connection.handleWithAsyncHandler {
       case req => {
         val data = URLDecoder.decode(req.entity.asInstanceOf[HttpEntity.Strict].data.utf8String, "UTF-8")
-        import argonaut._, Argonaut._
+        import argonaut._
+        import Argonaut._
         val p = data.decodeOption[PossyActor.LoadClosestElevationModel].get
         log.debug("parsed: {}", p)
         (possy ? p) map { r => {
