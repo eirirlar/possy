@@ -4,6 +4,7 @@ import java.net.URLDecoder
 import akka.http.model.japi.ResponseEntity
 import akka.util.{ByteString, Timeout}
 import com.kodeworks.possy.PossyActor.ElevationModel
+import com.typesafe.config.ConfigFactory
 
 import concurrent.duration._
 
@@ -22,12 +23,18 @@ object Boot extends App {
   val log = LoggerFactory.getLogger(Boot.getClass)
   val responseHeaders = headers.`Access-Control-Allow-Origin`(*) :: Nil
 
-  implicit val system = ActorSystem()
+  val config = ConfigFactory
+    .systemProperties()
+    .withFallback(ConfigFactory.load)
+
+  val demPath = config.getString("dem.path")
+
+  implicit val system = ActorSystem("possy", config)
   implicit val materializer = ActorFlowMaterializer()
   implicit val ec = system.dispatcher
   implicit val timeout = Timeout(5 seconds)
 
-  val possy = system.actorOf(Props(new PossyActor()))
+  val possy = system.actorOf(Props(new PossyActor(demPath)))
 
   val serverSource: Source[Http.IncomingConnection, Future[Http.ServerBinding]] =
     Http(system).bind(interface = "localhost", port = 8080)

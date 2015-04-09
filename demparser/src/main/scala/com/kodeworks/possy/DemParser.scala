@@ -11,7 +11,7 @@ object DemParser extends RegexParsers {
 
   override val skipWhitespace = false
 
-  val name = ".{135}".r ^^ {
+  val name = ".{130}".r ^^ {
     _.trim
   }
 
@@ -37,13 +37,18 @@ object DemParser extends RegexParsers {
 
   val blank6 = blankN(6)
 
-  val nameSpace = anyN(9)
+  val nameSpace = anyN(6)
 
   val mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
 
   val resolution = anyN(12)
 
-  def floatN(n: Int) = anyN(n) ^^ (_.toFloat)
+  val float: Parser[Float] = " *[-+]?[0-9]*\\.?[0-9]*".r ^^ (_.trim.toFloat)
+
+  def floatN(n: Int) = anyN(n) >> (s => {
+    println(s)
+    float
+  })
 
   val float12 = floatN(12)
 
@@ -51,7 +56,12 @@ object DemParser extends RegexParsers {
 
   val float24 = floatN(24)
 
-  def intN(n: Int): Parser[Int] = s"[\\d ]{$n}".r ^^ (_.trim.toInt)
+  val int: Parser[Int] = " *\\d*".r ^^ (_.trim.toInt)
+
+  def intN(n: Int): Parser[Int] = anyN(n) >> (s => {
+    println("int " + s)
+    int
+  })
 
   val int3 = intN(3)
 
@@ -65,13 +75,11 @@ object DemParser extends RegexParsers {
 
   val int9 = intN(9)
 
-  val zone = int6
-
   val recordTypeA =
-    name ~ nameSpace ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
+    name ~ int6 ~ nameSpace ~ int6 ~ int6 ~ int6 ~ int6 ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
       float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~
       int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ anyN(160) ^^ {
-      case name ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
+      case name ~ _ ~ _ ~ demLevel ~ elevationPattern ~ planimetricReferenceSystem ~ zone ~ mapProjectionParameters ~ unitOfResolutionGroundGrid ~ unitOfResolutionElevation ~ numberOfSidesInPolygon ~
         eastingOfSW ~ northingOfSW ~ eastingOfNW ~ northingOfNW ~ eastingOfNE ~ northingOfNE ~ eastingOfSE ~ northingOfSE ~ minElevation ~ maxElevation ~ angle ~
         accuracyCode ~ resolutionX ~ resolutionY ~ resolutionZ ~ numberOfRows ~ numberOfColumns ~ _ =>
         RecordTypeA(name, demLevel, elevationPattern, planimetricReferenceSystem, zone, mapProjectionParameters, unitOfResolutionGroundGrid, unitOfResolutionElevation, numberOfSidesInPolygon,
@@ -96,7 +104,7 @@ object DemParser extends RegexParsers {
     case blocks ~ _ => blocks.toList
   }
 
-  val recordTypeBTail: Parser[List[Int]] = opt(recordTypeB2 ~ recordTypeBTail) ^^ {
+  val recordTypeBTail: Parser[List[Int]] = not(recordTypeA | recordTypeBHead) ~> opt(recordTypeB2 ~ recordTypeBTail) ^^ {
     case Some(recordTypeB2 ~ recordTypeBTail) => recordTypeB2 ++ recordTypeBTail
     case None => Nil
   }
@@ -114,7 +122,8 @@ object DemParser extends RegexParsers {
 
 
   def parseDem(demString: String): Dem = {
-    parse(dem, demString).get
+    val p = parse(dem, demString)
+    p.get
   }
 }
 
