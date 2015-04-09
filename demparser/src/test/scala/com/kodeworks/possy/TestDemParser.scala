@@ -49,16 +49,6 @@ class TestDemParser {
   }
 
   @Test
-  def testFish {
-    val f: BufferedSource = Source.fromFile("C:/dev/src/temp/fish2.txt")(Codec.ISO8859)
-    val string: String = f.mkString
-    println("index of 261   255   248   240: " + string.indexOf("261   255   248   240"))
-    val p = parse(recordTypeBTail, string)
-    f.close
-    p.get
-  }
-
-  @Test
   def testRecordTypeB {
     val p = parse(recordTypeB, recordTypeBString + recordTypeB2String + recordTypeB3String)
     println(p)
@@ -75,8 +65,7 @@ class TestDemParser {
   @Test
   def testDemParser {
     val f: BufferedSource = Source.fromFile("C:/dev/src/data/dem/7002_2_10m_z33.dem")(Codec.ISO8859)
-    val string: String = f.mkString
-    println("index of 261   255   248   240: " + string.indexOf("261   255   248   240"))
+    val string= f.mkString
     val p = parseDem(string)
     f.close
     println("typeA " + p.typeA)
@@ -99,20 +88,22 @@ class TestDemParser {
 
   @Test
   def testFloat {
-    var p = parse(strictFloatN(1), "1")
-    p.get
-    p = parse(strictFloatN(1), "12")
+    var ps = parse(strictFloatStringN(1), "1")
+    ps.get
+    var p = parse(strictFloatN(1), "12")
     p.get
     p = parse(strictFloatN(1), "")
     assertTrue(p.isInstanceOf[Failure])
-    p = parse(strictFloatN(1), "-")
-    assertTrue(p.isInstanceOf[Failure])
+    ps = parse(strictFloatStringN(1), "-")
+    println(ps)
+    assertTrue(ps.isInstanceOf[Failure])
     p = parse(strictFloatN(3), "1.1")
     p.get
     p = parse(strictFloatN(3), "-11")
     p.get
-    p = parse(strictFloatN(3), "1-1")
-    assertTrue(p.isInstanceOf[Failure])
+    ps = parse(strictFloatStringN(3), "1-1")
+    println(ps)
+    assertTrue(ps.isInstanceOf[Failure])
     p = parse(strictFloatN(4), "-1.1")
     p.get
     p = parse(strictFloatN(4), "1.-1")
@@ -131,7 +122,7 @@ class TestDemParser {
     p.get
     p = parse(float24, "  249800.000000000000000")
     p.get
-    p = parse(float24, "  249800.000000000000000 ")
+    p = parse(strictFloatN(3), "1.2x")
     println(p)
     p.get
   }
