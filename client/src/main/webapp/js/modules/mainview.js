@@ -15,7 +15,7 @@ function(app, gmap) {
             console.log('mainview init');
             this.mapProp = {
                 center: new google.maps.LatLng(defaultLocation[0], defaultLocation[1]),
-                zoom:3,
+                zoom:5,
                 mapTypeId: google.maps.MapTypeId.ROADMAP
             };
 
@@ -56,7 +56,7 @@ function(app, gmap) {
                     fillColor: '#FF0000',
                     fillOpacity: 0.35,
                     map: this.map,
-                    bounds: new google.maps.LatLngBounds(
+                    bounds: this.bounds = new google.maps.LatLngBounds(
                         new google.maps.LatLng(s.lat0, s.lng0),
                         new google.maps.LatLng(s.lat1, s.lng1))
                 });

@@ -1,8 +1,5 @@
 package com.kodeworks.possy
 
-import java.io.Reader
-
-import scala.util.matching.Regex
 import scala.util.parsing.combinator.RegexParsers
 
 /*
@@ -12,37 +9,37 @@ object DemParser extends RegexParsers {
 
   override val skipWhitespace = false
 
-  val name = ".{130}".r ^^ {
+  def name = ".{130}".r ^^ {
     _.trim
   }
 
-  val any: Parser[String] = ".*".r
+  def any: Parser[String] = ".*".r
 
   def anyN(n: Int): Parser[String] = s".{$n}".r
 
-  val any3 = anyN(3)
+  def any3 = anyN(3)
 
-  val any4 = anyN(4)
+  def any4 = anyN(4)
 
-  val any6 = anyN(6)
+  def any6 = anyN(6)
 
-  val any12 = anyN(12)
+  def any12 = anyN(12)
 
-  val any23 = anyN(23)
+  def any23 = anyN(23)
 
-  val any132 = anyN(132)
+  def any132 = anyN(132)
 
   def blankN(n: Int): Parser[String] = s"\\s{$n}".r
 
-  val blank4 = blankN(4)
+  def blank4 = blankN(4)
 
-  val blank6 = blankN(6)
+  def blank6 = blankN(6)
 
-  val blank8 = blankN(8)
+  def blank8 = blankN(8)
 
-  val mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
+  def mapProjectionParameters = anyN(360) //15 fields set to zero when UTM
 
-  val resolution = anyN(12)
+  def resolution = anyN(12)
 
   def strictFloatStringN(n: Int): Parser[String] = {
     val n1 = math.max(1, n - 1)
@@ -63,13 +60,17 @@ object DemParser extends RegexParsers {
     else strictFloatN(n - nFloat, nFloat)
   })
 
-  val float12 = floatN(12)
+  def float12 = floatN(12)
 
-  val float13 = floatN(13)
+  def float13 = floatN(13)
 
-  val float24 = floatN(24)
+  def float24 = floatN(24)
 
-  def strictIntN(nBlank: Int, nInt: Int): Parser[Int] = s" {$nBlank}".r ~> s"\\d{$nInt}".r ^^ (_.toInt)
+  def strictIntStringN(n: Int): Parser[String] = s"-\\d{${math.max(1, n - 1)}}|\\d{$n}".r
+
+  def strictIntN(n: Int): Parser[Int] = strictIntStringN(n) ^^ (_.toInt)
+
+  def strictIntN(nBlank: Int, nInt: Int): Parser[Int] = s" {$nBlank}".r ~> strictIntN(nInt)
 
   def intN(n: Int): Parser[Int] = guard(anyN(n)) >> (i => {
     val nDigit: Int = i.trim.length
@@ -77,21 +78,21 @@ object DemParser extends RegexParsers {
     else strictIntN(n - nDigit, nDigit)
   })
 
-  val int3 = intN(3)
+  def int3 = intN(3)
 
-  val int4 = intN(4)
+  def int4 = intN(4)
 
-  val int5 = intN(5)
+  def int5 = intN(5)
 
-  val int6 = intN(6)
+  def int6 = intN(6)
 
-  val int8 = intN(8)
+  def int8 = intN(8)
 
-  val int9 = intN(9)
+  def int9 = intN(9)
 
-  val zone = int6
+  def zone = int6
 
-  val recordTypeA =
+  def recordTypeA =
     name ~ int6 ~ blank8 ~ int6 ~ int6 ~ int6 ~ zone ~ mapProjectionParameters ~ int6 ~ int6 ~ int6 ~
       float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~
       int6 ~ float12 ~ float12 ~ float12 ~ int6 ~ int6 ~ anyN(160) ^^ {
@@ -103,34 +104,34 @@ object DemParser extends RegexParsers {
           accuracyCode, resolutionX, resolutionY, resolutionZ, numberOfRows, numberOfColumns)
     }
 
-  val elevationOpt: DemParser.Parser[Option[Int]] =
+  def elevationOpt: DemParser.Parser[Option[Int]] =
     blank6 ^^ { _ => None } | int6 ^^ {
       Some(_)
     }
 
   def elevationOptsN(n: Int): DemParser.Parser[List[Int]] = repN(n, elevationOpt) ^^ (_.flatten)
 
-  val recordTypeBHead: Parser[RecordTypeB] =
+  def recordTypeBHead: Parser[RecordTypeB] =
     int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(146) ~ blank4 ^^ {
       case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
         RecordTypeB(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
     }
 
-  val recordTypeB2: Parser[List[Int]] = elevationOptsN(170) ~ blank4 ^^ {
+  def recordTypeB2: Parser[List[Int]] = elevationOptsN(170) ~ blank4 ^^ {
     case blocks ~ _ => blocks.toList
   }
 
-  val recordTypeBTail: Parser[List[Int]] = recordTypeB2 ~ opt(recordTypeBTail) ^^ {
+  def recordTypeBTail: Parser[List[Int]] = recordTypeB2 ~ opt(recordTypeBTail) ^^ {
     case recordTypeB2 ~ Some(recordTypeBTail) => recordTypeB2 ++ recordTypeBTail
     case recordTypeB2 ~ _ => recordTypeB2
   }
 
-  val recordTypeB: Parser[RecordTypeB] = recordTypeBHead ~ opt(recordTypeBTail) ^^ {
+  def recordTypeB: Parser[RecordTypeB] = recordTypeBHead ~ opt(recordTypeBTail) ^^ {
     case head ~ Some(tail) => head.copy(elevations = head.elevations ++ tail)
     case head ~ _ => head
   }
 
-  val dem =
+  def dem =
     recordTypeA ~
       rep(recordTypeB) ^^ {
       case typeA ~ typeBs =>

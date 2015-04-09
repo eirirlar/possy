@@ -70,7 +70,18 @@ class TestDemParser {
     f.close
     println("typeA " + p.typeA)
     println("num typeBs " + p.typeBs.size)
-    println("num blocks in first typeB " + p.typeBs.head.elevations.size)
+    println("last typeB " + p.typeBs.last)
+    assertTrue(p.typeBs.forall(_.elevations.size == p.typeA.numberOfColumns))
+  }
+
+  @Test
+  def testFailingBlock {
+    val f: BufferedSource = Source.fromFile("C:/dev/src/data/dem/7002_2_row30-32.txt")(Codec.ISO8859)
+    val string= f.mkString
+    val p = parse(rep(recordTypeB) ^^ (_.toList), string)
+    f.close
+    println(p)
+    p.get
   }
 
   @Test
@@ -129,23 +140,26 @@ class TestDemParser {
 
   @Test
   def testInt {
-    val p = parse(int6, "      ")
+    var p = parse(int6, "      ")
     assertTrue(p.isInstanceOf[Failure])
 
-    val p1 = parse(strictIntN(1, 1), " 2")
-    p1.get
+    p = parse(strictIntN(1, 1), " 2")
+    p.get
 
-    val p2 = parse(intN(2), " 2")
-    p2.get
+    p = parse(intN(2), " 2")
+    p.get
 
-    val p3 = parse(strictIntN(5, 1), "  6   ")
-    assertTrue(p3.isInstanceOf[Failure])
+    p = parse(strictIntN(5, 1), "  6   ")
+    assertTrue(p.isInstanceOf[Failure])
 
-    val p4 = parse(int6, "  6   ")
-    assertTrue(p4.isInstanceOf[Failure])
+    p = parse(int6, "  6   ")
+    assertTrue(p.isInstanceOf[Failure])
 
-    val p5 = parse(intN(2), "  3")
-    assertTrue(p5.isInstanceOf[Failure])
+    p = parse(intN(2), "  3")
+    assertTrue(p.isInstanceOf[Failure])
+    
+    p = parse(int6, "    -1  ")
+    p.get
   }
 
   @Test
