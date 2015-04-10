@@ -18,9 +18,8 @@ class TestStreamParser {
       .map(s => DemParser.parse(DemParser.record, s).get.toString)
       .pipe(iso8859Encode)
       .to(io.fileChunkW("target/converted.dem", 1024, false)).run
-
-    // at the end of the universe...
-    val u: Unit = converter.run
+    //TODO repartition and zipwithstate http://stackoverflow.com/questions/28830532/scalaz-stream-how-to-handle-the-header-first-chunks-in-a-different-way-to-t
+    converter.run
     val end = System.currentTimeMillis
     println("passed time " + ((end - start) / 1000) + " seconds")
 
