@@ -94,6 +94,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.scalaz.stream</groupId>
+            <artifactId>scalaz-stream_2.11</artifactId>
+            <version>${scalaz-stream.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
