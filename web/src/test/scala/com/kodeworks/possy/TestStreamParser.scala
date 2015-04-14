@@ -35,9 +35,9 @@ class TestStreamParser {
         }
         //builder.apply(p)
         p
-      }).run
-//        .pipe(iso8859Encode)
-//        .to(io.fileChunkW("target/converted.dem", 1024, false)).run
+      })
+    //        .pipe(iso8859Encode)
+    //        .to(io.fileChunkW("target/converted.dem", 1024, false)).run
     //TODO repartition and zipwithstate http://stackoverflow.com/questions/28830532/scalaz-stream-how-to-handle-the-header-first-chunks-in-a-different-way-to-t
     converter.run
     val end = System.currentTimeMillis

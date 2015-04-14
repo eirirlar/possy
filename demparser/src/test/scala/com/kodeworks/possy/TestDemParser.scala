@@ -1,11 +1,9 @@
 package com.kodeworks.possy
 
-import java.nio.CharBuffer
-
 import com.kodeworks.possy.DemParser._
 import com.kodeworks.possy.TestDemParser._
 import org.junit.Assert._
-import org.junit.{Assert, Test}
+import org.junit.Test
 
 import scala.io.{BufferedSource, Codec, Source}
 
