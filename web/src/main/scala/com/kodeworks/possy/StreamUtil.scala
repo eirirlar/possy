@@ -20,11 +20,16 @@ object StreamUtil {
   val iso8859Encode: Process1[String, ByteVector] =
     lift(s => ByteVector.view(s.getBytes(StandardCharsets.ISO_8859_1)))
 
-//  val iso8859Decode: Process1[ByteVector, String] = {
-//    lift(b => new String(b.toArray, StandardCharsets.ISO_8859_1))
-//  }
+  //  val iso8859Decode: Process1[ByteVector, String] = {
+  //    lift(b => new String(b.toArray, StandardCharsets.ISO_8859_1))
+  //  }
 
-  val iso8859Decode:Process1[Array[Byte], String] = {
+  val iso8859Decode: Process1[Array[Byte], String] = {
     lift(b => new String(b, StandardCharsets.ISO_8859_1))
   }
+
+  def demBuilderSink(builder: DemBuilder): Sink[Task, Record] =
+    channel.lift((r: Record) => Task.now {
+      builder(r); r
+    })
 }

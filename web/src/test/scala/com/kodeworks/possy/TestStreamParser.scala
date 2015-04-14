@@ -33,9 +33,8 @@ class TestStreamParser {
             last = System.currentTimeMillis()
           }
         }
-        //builder.apply(p)
-        p
-      })
+        builder.apply(p)
+      }).drain.run
     //        .pipe(iso8859Encode)
     //        .to(io.fileChunkW("target/converted.dem", 1024, false)).run
     //TODO repartition and zipwithstate http://stackoverflow.com/questions/28830532/scalaz-stream-how-to-handle-the-header-first-chunks-in-a-different-way-to-t

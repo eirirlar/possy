@@ -74,13 +74,12 @@ class DemBuilder {
     this.typeBTails += typeBTail
   }
 
-  def apply(record: Record): DemBuilder = {
+  def apply(record: Record) {
     record match {
       case a: RecordTypeA => apply(a)
       case bh: RecordTypeBHead => apply(bh)
       case bt: RecordTypeBTail => apply(bt)
     }
-    this
   }
 
   def checkBuildTypeB() {
