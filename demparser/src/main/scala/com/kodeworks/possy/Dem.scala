@@ -1,10 +1,11 @@
 package com.kodeworks.possy
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.immutable.VectorBuilder
+
 
 case class Dem(
                 typeA: RecordTypeA,
-                typeBs: List[RecordTypeBHead]
+                typeBs: Vector[RecordTypeBHead]
                 )
 
 sealed trait Record
@@ -49,11 +50,11 @@ case class RecordTypeBHead(
                             elevationOfLocalDatum: Float,
                             minElevation: Float,
                             maxElevation: Float,
-                            elevations: List[Short] //146 elems in first B record, 170 in each next typeB
+                            elevations: Vector[Short] //146 elems in first B record, 170 in each next typeB
                             ) extends Record
 
 case class RecordTypeBTail(
-                            elevations: List[Short]
+                            elevations: Vector[Short]
                             ) extends Record
 
 //usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
@@ -62,13 +63,13 @@ class DemBuilder {
   var nTypeBs: Int = -1
   var nTypeBTails: Int = -1
   var typeBHead: RecordTypeBHead = null
-  var typeBTails: ArrayBuffer[RecordTypeBTail] = null
-  var typeBs: ArrayBuffer[RecordTypeBHead] = null
+  var typeBTails: VectorBuilder[RecordTypeBTail] = null
+  var typeBs: VectorBuilder[RecordTypeBHead] = null
 
   def apply(typeA: RecordTypeA) {
     this.typeA = typeA
     this.nTypeBs = typeA.numberOfColumns
-    this.typeBs = new ArrayBuffer(nTypeBs)
+    this.typeBs = new VectorBuilder()
   }
 
   def apply(typeBHead: RecordTypeBHead) {
@@ -84,7 +85,7 @@ class DemBuilder {
         val d = typeBHead.numMElevations - DemParser.typeBHeadMaxElevs
         d / DemParser.typeBTailMaxElevs + (if (d % DemParser.typeBTailMaxElevs == 0) 0 else 1)
       }
-      typeBTails = new ArrayBuffer(nTypeBTails)
+      typeBTails = new VectorBuilder()
     }
   }
 
@@ -103,14 +104,14 @@ class DemBuilder {
 
   def checkBuildTypeB() {
     if (null != typeBHead) {
-      typeBs.append(typeBHead.copy(elevations = typeBHead.elevations ++ typeBTails.toList.flatMap(_.elevations)))
+      typeBs += typeBHead.copy(elevations = typeBHead.elevations ++ typeBTails.result().flatMap(_.elevations))
       typeBHead = null
     }
-    typeBTails = new ArrayBuffer(nTypeBTails)
+    typeBTails = new VectorBuilder()
   }
 
   def build() = {
     checkBuildTypeB
-    Dem(typeA, typeBs.toList)
+    Dem(typeA, typeBs.result)
   }
 }

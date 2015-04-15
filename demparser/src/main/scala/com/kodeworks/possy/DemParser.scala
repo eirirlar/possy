@@ -125,7 +125,7 @@ object DemParser extends RegexParsers {
       Some(_)
     }
 
-  def elevationOptsN(n: Int): DemParser.Parser[List[Short]] = repN(n, elevationOpt) ^^ (_.flatten)
+  def elevationOptsN(n: Int): DemParser.Parser[Vector[Short]] = repN(n, elevationOpt) ^^ (_.flatten.toVector)
 
   def recordTypeBHead: Parser[RecordTypeBHead] =
     int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(typeBHeadMaxElevs) ~ blank4 ^^ {
@@ -133,13 +133,13 @@ object DemParser extends RegexParsers {
         RecordTypeBHead(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
     }
 
-  def recordTypeBTailElevations: Parser[List[Short]] = elevationOptsN(typeBTailMaxElevs) ~ blank4 ^^ {
-    case blocks ~ _ => blocks.toList
+  def recordTypeBTailElevations: Parser[Vector[Short]] = elevationOptsN(typeBTailMaxElevs) ~ blank4 ^^ {
+    case blocks ~ _ => blocks.toVector
   }
 
   def recordTypeBTail: Parser[RecordTypeBTail] = recordTypeBTailElevations ^^ (RecordTypeBTail(_))
 
-  def recordTypeBTailBak: Parser[List[Short]] = recordTypeBTailElevations ~ opt(recordTypeBTailBak) ^^ {
+  def recordTypeBTailBak: Parser[Vector[Short]] = recordTypeBTailElevations ~ opt(recordTypeBTailBak) ^^ {
     case recordTypeB2 ~ Some(recordTypeBTail) => recordTypeB2 ++ recordTypeBTail
     case recordTypeB2 ~ _ => recordTypeB2
   }
@@ -155,7 +155,7 @@ object DemParser extends RegexParsers {
     recordTypeA ~
       rep(recordTypeB) ^^ {
       case typeA ~ typeBs =>
-        Dem(typeA, typeBs.toList)
+        Dem(typeA, typeBs.toVector)
     }
 
   def parseDem(demString: String): Dem = {

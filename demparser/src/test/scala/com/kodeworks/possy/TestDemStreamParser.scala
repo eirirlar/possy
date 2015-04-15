@@ -1,8 +1,10 @@
 package com.kodeworks.possy
 
-/**
- * Created by eirirlar on 15.04.2015.
- */
-class TestDemStreamParser {
+import org.junit.Test
 
+class TestDemStreamParser {
+  @Test
+  def testDemStreamParser {
+    DemStreamParser.parse("C:/dev/src/data/dem/7002_2_10m_z33.dem")
+  }
 }
