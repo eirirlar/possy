@@ -1,21 +1,14 @@
 package com.kodeworks.possy
 
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
+import java.nio.channels.AsynchronousFileChannel
+import java.nio.file.{Paths, StandardOpenOption}
 
 import org.junit.Test
-import scodec.bits.ByteVector
 
-import scala.collection.mutable.ListBuffer
 import scala.io.Codec
 import scala.language.{implicitConversions, reflectiveCalls}
-import scalaz.concurrent.Task
-import scalaz.stream.Process._
 import scalaz.stream._
 import scalaz.stream.nio._
-import StreamUtil._
-
-import scalaz.stream.process1._
 
 
 class TestStreamParser {
@@ -26,10 +19,8 @@ class TestStreamParser {
     var i = 0
     var last = start
 
-
-
-    val converter  =
-      file.textR(toAsyncFileChannel("C:/dev/src/data/dem/7002_2_10m_z33.dem"))(Codec.ISO8859)
+    val converter =
+      file.textR(AsynchronousFileChannel.open(Paths.get("C:/dev/src/data/dem/7002_2_10m_z33.dem"), StandardOpenOption.READ))(Codec.ISO8859)
         .map(s => {
         val p = DemParser.parse(DemParser.record, s).get
         if (p.isInstanceOf[RecordTypeBHead]) {
@@ -41,14 +32,9 @@ class TestStreamParser {
         }
         p
       })
-        .runLog.run.toList
-
-    //.pipe(demBuilderProcess).runLast
-    //.pipe(process1.fold(builder)(_(_)))
-    //.map(_.toString).pipe(iso8859Encode).to(io.fileChunkW("target/converted.dem", 1024, false)).run
+        .pipe(process1.fold(builder)(_(_))).map(_.build)
     val end = System.currentTimeMillis
-    println("passed time (parse step)" + ((end - start) / 1000) + " seconds")
-
+    converter.runLast.run.get
+    println("passed time " + ((end - start) / 1000) + " seconds")
   }
-
 }
