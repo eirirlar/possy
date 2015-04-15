@@ -29,11 +29,9 @@ class PossyActor(demPath: String) extends Actor {
         Future {
           val file: File = path.toFile
           log.debug("Parsing {}", file.getName)
-          val f = Source.fromFile(file)(Codec.ISO8859)
           val start = System.currentTimeMillis
-          val p = DemParser.parseDem(f.mkString)
+          val p = DemStreamParser.parseDem(file.getCanonicalPath)
           val end = System.currentTimeMillis
-          f.close()
           log.debug(s"Parsed  ${file.getName} in ${(end - start) / 1000L} seconds")
           p
         }

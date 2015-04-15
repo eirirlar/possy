@@ -12,7 +12,7 @@ import scalaz.stream.nio.file
 object DemStreamParser {
   val log = LoggerFactory.getLogger(DemStreamParser.getClass)
 
-  def parse(path: String): Dem = {
+  def parseDem(path: String): Dem = {
     var i = -1
     file.textR(AsynchronousFileChannel.open(Paths.get(path), StandardOpenOption.READ))(Codec.ISO8859)
       .map(s => {
