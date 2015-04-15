@@ -6,6 +6,8 @@ import scala.util.parsing.combinator.RegexParsers
 Source http://nationalmap.gov/standards/pdf/2DEM0198.PDF
  */
 object DemParser extends RegexParsers {
+  val typeBHeadMaxElevs = 146
+  val typeBTailMaxElevs = 170
 
   override val skipWhitespace = false
 
@@ -126,12 +128,12 @@ object DemParser extends RegexParsers {
   def elevationOptsN(n: Int): DemParser.Parser[List[Short]] = repN(n, elevationOpt) ^^ (_.flatten)
 
   def recordTypeBHead: Parser[RecordTypeBHead] =
-    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(146) ~ blank4 ^^ {
+    int6 ~ int6 ~ int6 ~ int6 ~ float24 ~ float24 ~ float24 ~ float24 ~ float24 ~ elevationOptsN(typeBHeadMaxElevs) ~ blank4 ^^ {
       case rowIdent ~ columnIdent ~ numMElevations ~ numNElevations ~ firstElevationX ~ firstElevationY ~ elevationOfLocalDatum ~ minElevation ~ maxElevation ~ blocks ~ _ =>
         RecordTypeBHead(rowIdent, columnIdent, numMElevations, numNElevations, firstElevationX, firstElevationY, elevationOfLocalDatum, minElevation, maxElevation, blocks)
     }
 
-  def recordTypeBTailElevations: Parser[List[Short]] = elevationOptsN(170) ~ blank4 ^^ {
+  def recordTypeBTailElevations: Parser[List[Short]] = elevationOptsN(typeBTailMaxElevs) ~ blank4 ^^ {
     case blocks ~ _ => blocks.toList
   }
 

@@ -8,6 +8,7 @@ import java.nio.file.{StandardOpenOption, Paths}
 import scodec.bits.ByteVector
 
 import scalaz.concurrent.Task
+import scalaz.stream.Process._
 import scalaz.stream._
 import scalaz.stream.process1._
 
@@ -32,4 +33,16 @@ object StreamUtil {
     channel.lift((r: Record) => Task.now {
       builder(r); r
     })
+
+  def demBuilderProcess: Process1[Record, Dem] = {
+    def go(builder: DemBuilder): Process1[Record, Dem] =
+      receive1 { record =>
+        builder(record)
+        go(builder)
+      }
+    suspend {
+      val builder = new DemBuilder()
+      drainLeading(go(builder) onComplete emit(builder.build()))
+    }
+  }
 }

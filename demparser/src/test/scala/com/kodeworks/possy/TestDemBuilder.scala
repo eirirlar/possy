@@ -22,6 +22,30 @@ class TestDemBuilder {
     var dem = builder.build
     Assert.assertEquals(96, dem.typeBs.last.elevations.last)
     println(dem)
-
   }
+
+  @Test
+  def testRecordMemory {
+    val typeA = RecordTypeA("test", 0, 0, 0, 33, "", 10, 10, 4, 123f, 234f, 123f, 234f, 123f, 234f, 123f, 234f, 4f, 120f, 0f, 0, 10f, 10f, .1f, 1, 5041)
+    val typeBHead = RecordTypeBHead(1, 1, 5041, 1, 123f, 234f, 0f, 23f, 55f, (0 to DemParser.typeBHeadMaxElevs).map(_.toShort).toList)
+    val typeBTail = RecordTypeBTail((0 to DemParser.typeBTailMaxElevs).map(_.toShort).toList)
+    val typeBTailLast = RecordTypeBTail((0 to 236).map(_.toShort).toList)
+    val builder = new DemBuilder()
+    builder(typeA)
+    var n = 0
+    var last = System.currentTimeMillis
+    for (i <- (0 to typeA.numberOfColumns)) {
+      builder(typeBHead)
+      if (n % 100 == 0) {
+        println("column " + n + " in " + (System.currentTimeMillis() - last) + " millis, free: " + (Runtime.getRuntime.freeMemory() / 1024L / 1024L) + " MB")
+        last = System.currentTimeMillis()
+      }
+      for (j <- (0 to 28)) {
+        builder(typeBTail)
+      }
+      builder(typeBTailLast)
+      n += 1
+    }
+  }
+
 }

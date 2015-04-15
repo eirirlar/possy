@@ -1,6 +1,6 @@
 package com.kodeworks.possy
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 case class Dem(
                 typeA: RecordTypeA,
@@ -38,6 +38,7 @@ case class RecordTypeA(
                         numberOfColumns: Int
                         ) extends Record
 
+
 case class RecordTypeBHead(
                             rowNumber: Int,
                             columnNumber: Int,
@@ -55,31 +56,49 @@ case class RecordTypeBTail(
                             elevations: List[Short]
                             ) extends Record
 
+//usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
 class DemBuilder {
   var typeA: RecordTypeA = null
+  var nTypeBs: Int = -1
+  var nTypeBTails: Int = -1
   var typeBHead: RecordTypeBHead = null
-  var typeBTails = ListBuffer[RecordTypeBTail]()
-  var typeBs = ListBuffer[RecordTypeBHead]()
+  var typeBTails: ArrayBuffer[RecordTypeBTail] = null
+  var typeBs: ArrayBuffer[RecordTypeBHead] = null
 
   def apply(typeA: RecordTypeA) {
     this.typeA = typeA
+    this.nTypeBs = typeA.numberOfColumns
+    this.typeBs = new ArrayBuffer(nTypeBs)
   }
 
   def apply(typeBHead: RecordTypeBHead) {
+    checkNTypeBTails(typeBHead)
     checkBuildTypeB()
     this.typeBHead = typeBHead
+  }
+
+  def checkNTypeBTails(typeBHead: RecordTypeBHead): Unit = {
+    if (-1 == this.nTypeBTails) {
+      this.nTypeBTails = if (typeBHead.numMElevations < DemParser.typeBHeadMaxElevs) 0
+      else {
+        val d = typeBHead.numMElevations - DemParser.typeBHeadMaxElevs
+        d / DemParser.typeBTailMaxElevs + (if (d % DemParser.typeBTailMaxElevs == 0) 0 else 1)
+      }
+      typeBTails = new ArrayBuffer(nTypeBTails)
+    }
   }
 
   def apply(typeBTail: RecordTypeBTail) {
     this.typeBTails += typeBTail
   }
 
-  def apply(record: Record) {
+  def apply(record: Record): DemBuilder = {
     record match {
       case a: RecordTypeA => apply(a)
       case bh: RecordTypeBHead => apply(bh)
       case bt: RecordTypeBTail => apply(bt)
     }
+    this
   }
 
   def checkBuildTypeB() {
@@ -87,7 +106,7 @@ class DemBuilder {
       typeBs.append(typeBHead.copy(elevations = typeBHead.elevations ++ typeBTails.toList.flatMap(_.elevations)))
       typeBHead = null
     }
-    typeBTails = ListBuffer()
+    typeBTails = new ArrayBuffer(nTypeBTails)
   }
 
   def build() = {
