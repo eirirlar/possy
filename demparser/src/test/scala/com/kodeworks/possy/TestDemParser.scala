@@ -8,6 +8,8 @@ import org.junit.Test
 import scala.io.{BufferedSource, Codec, Source}
 
 class TestDemParser {
+  val p = new DemParser()
+  import p._
   @Test
   def testRecordTypeA {
     val parsed = parse(recordTypeA, recordTypeAString)
@@ -111,7 +113,7 @@ class TestDemParser {
   @Test
   def testAnyN {
     val s = "     1" //5 space, 1
-    val p = DemParser.parse(DemParser.anyN(6), s)
+    val p = parse(anyN(6), s)
     p.get
   }
 
