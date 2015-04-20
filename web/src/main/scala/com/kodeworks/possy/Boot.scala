@@ -5,11 +5,12 @@ import java.net.URLDecoder
 import akka.actor.{ActorSystem, Props}
 import akka.http.Http
 import akka.http.model.headers.HttpOriginRange.*
-import akka.http.model.{ContentTypes, HttpEntity, HttpResponse, headers}
+import akka.http.model._
 import akka.pattern.ask
 import akka.stream.ActorFlowMaterializer
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.{ByteString, Timeout}
+import argonaut.JString
 import com.typesafe.config.ConfigFactory
 import org.slf4j.LoggerFactory
 
@@ -38,7 +39,7 @@ object Boot extends App {
   val bindingFuture: Future[Http.ServerBinding] = serverSource.to(Sink.foreach { connection =>
     println("Accepted new connection from " + connection.remoteAddress)
     connection.handleWithAsyncHandler {
-      case req => {
+      case req if (req.uri.path.reverse.startsWith(Uri.Path("loadClosestElevationIfChanged"))) => {
         val data = URLDecoder.decode(req.entity.asInstanceOf[HttpEntity.Strict].data.utf8String, "UTF-8")
         import argonaut._
         import Argonaut._
@@ -50,6 +51,12 @@ object Boot extends App {
               ByteString(r.asInstanceOf[PossyActor.ElevationModel].asJson.toString)))
         }
         }
+      }
+      case req if (req.uri.path.reverse.startsWith(Uri.Path("pathId"))) => {
+        val pathCalculator = system.actorOf(Props(new PathCalculator))
+        log.debug("creating pathCalculator with id: {}", pathCalculator.path.name)
+        Future(HttpResponse(headers = responseHeaders, entity = HttpEntity.Strict(ContentTypes.`text/plain(UTF-8)`,
+          ByteString(pathCalculator.path.name))))
       }
     }
   }).run()

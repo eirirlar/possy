@@ -49,7 +49,6 @@ function(app, gmap) {
                 method: 'POST',
                 data: JSON.stringify({lat: center.lat(), lng: center.lng()})
             }).then(_.bind(function(s) {
-                console.log('big success: ' + s);
                 var bounds = new google.maps.LatLngBounds(
                     new google.maps.LatLng(s.lat0, s.lng0),
                     new google.maps.LatLng(s.lat1, s.lng1));
@@ -67,8 +66,26 @@ function(app, gmap) {
                     map: this.map,
                     bounds: bounds
                 });
+
+                google.maps.event.addListener(this.rectangle, 'rightclick', this.rectangleClicked);
+
             }, this));
             console.log(center);
+        },
+
+        rectangleClicked: function(event) {
+            console.log('rectangle clicked ' + event.latLng);
+            if(!this.pathId) {
+                console.log('path drawing started, getting path id');
+                $.ajax(app.root + 'pathId', {
+                    method: 'GET'
+                }).then(_.bind(function(pathId) {
+                    console.log('got path id ' + pathId);
+                    this.pathId = pathId;
+                }, this), function(f) {
+                    console.log('error');
+                });
+            }
         }
     });
     return Mainview;

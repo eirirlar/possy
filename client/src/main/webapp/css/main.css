@@ -196,3 +196,15 @@ textarea {
         page-break-after: avoid;
     }
 }
+
+/* Custom */
+
+fieldset.main {
+    border: 1px grey solid;
+}
+
+legend.main {
+    border: 1px grey solid;
+    margin-left: 1em;
+    padding: 0.2em 0.8em;
+}
