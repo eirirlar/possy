@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.Future
 import scala.io.{Codec, Source}
 import akka.pattern.pipe
+import Model._
 
 class PossyActor(demPath: String) extends Actor {
   var dems: Map[(Float, Float), Dem] = Map()
@@ -49,7 +50,7 @@ class PossyActor(demPath: String) extends Actor {
   }
 
   override def receive = {
-    case LoadClosestElevationModel(lat, lng) => {
+    case LatLng(lat, lng) => {
       if (dems.nonEmpty) {
         val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
         val s = dems.keys.toList.sortBy(k => distancePow(k._1, k._2, u.E.toFloat, u.N.toFloat))
@@ -74,10 +75,6 @@ class PossyActor(demPath: String) extends Actor {
 object PossyActor {
   val log = LoggerFactory.getLogger(classOf[PossyActor])
 
-  case class LoadClosestElevationModel(
-                                        lat: Float,
-                                        lng: Float
-                                        )
 
   case class ElevationModel(
                              lat0: Float,
@@ -86,8 +83,6 @@ object PossyActor {
                              lng1: Float
                              )
 
-  implicit def LoadClosestElevationModelCodec =
-    casecodec2(LoadClosestElevationModel.apply, LoadClosestElevationModel.unapply)("lat", "lng")
 
   implicit def ElevationModelCodec =
     casecodec4(ElevationModel.apply, ElevationModel.unapply)("lat0", "lng0", "lat1", "lng1")

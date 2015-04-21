@@ -1,18 +1,44 @@
-<fieldset class="main">
-    <legend class="main">Info</legend>
+<div class="container-fluid">
+    <div>
+        <fieldset>
+            <legend>Info</legend>
+            <ul class="info">
+                <li>Single right-click to add point to the path</li>
 
-    <p>Single right-click to add point to the path</p>
+                <li>Click 'undo last point' to remove last point</li>
 
-    <p>Click 'undo last point' to remove last point</p>
+                <li>Click 'done' to save the path</li>
+            </ul>
+        </fieldset>
+    </div>
 
-    <p>Click done to save the path</p>
-</fieldset>
+    <div id="googleMap" style="width:500px;height:380px;"></div>
 
-<div id="googleMap" style="width:500px;height:380px;"></div>
+    <div>
+        <fieldset>
+            <legend>Actions</legend>
+            <ul>
+                <li><a href="" class="undo_last_point">Undo last point</a></li>
+                <li><a href="" class="save_path">Save path</a></li>
+            </ul>
+        </fieldset>
+    </div>
 
-<fieldset class="main">
-    <legend class="main">Actions</legend>
-    <button class="undo_last_point">Undo last point</button>
-    <button class="save_path">Save path</button>
-</fieldset>
+    <div class="row">
+        <div class="col-md-3">
+            <fieldset>
+                <legend>Plotted Points</legend>
+                <ul class="plotted">
+                </ul>
+            </fieldset>
+        </div>
 
+        <div class="col-md-3">
+            <fieldset>
+                <legend>Calculated Points</legend>
+                <ul class="calculated">
+                </ul>
+            </fieldset>
+        </div>
+    </div>
+</div>

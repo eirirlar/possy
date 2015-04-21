@@ -29,12 +29,15 @@ function(app, gmap) {
             }
 
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
+            this.rectangleClicked = _.bind(this.rectangleClicked, this);
         },
 
         afterRender: function() {
             this.map = new google.maps.Map(this.$el.find("#googleMap").get(0), this.mapProp);
-            this.loadClosestElevationIfChanged();
-            google.maps.event.addListener(this.map, 'center_changed', this.centerChanged);
+            if(!this.pathId) {
+                this.loadClosestElevationIfChanged();
+                this.centerChangedListener = google.maps.event.addListener(this.map, 'center_changed', this.centerChanged);
+            }
         },
 
         centerChanged: function() {
@@ -75,17 +78,36 @@ function(app, gmap) {
 
         rectangleClicked: function(event) {
             console.log('rectangle clicked ' + event.latLng);
-            if(!this.pathId) {
-                console.log('path drawing started, getting path id');
-                $.ajax(app.root + 'pathId', {
-                    method: 'GET'
-                }).then(_.bind(function(pathId) {
-                    console.log('got path id ' + pathId);
-                    this.pathId = pathId;
-                }, this), function(f) {
-                    console.log('error');
-                });
-            }
+            _.bind(function() {
+                if(!this.pathId) {
+                    console.log('path drawing started, getting path id');
+                    return $.ajax(app.root + 'path', {
+                        method: 'GET'
+                    }).then(_.bind(function(pathId) {
+                        console.log('got path id ' + pathId);
+                        this.pathId = pathId;
+                        app.router.navigate(this.pathId, {trigger:false});
+                        this.$el.find('.info').prepend('<li>You are now editing unsaved path \'' + pathId + '\'</li>');
+
+                        if(this.centerChangedListener) {
+                            google.maps.event.removeListener(this.centerChangedListener);
+                            delete this.centerChangedListener;
+                        }
+                        return pathId;
+                    }, this));
+                }
+                return $.when(this.pathId);
+            }, this)().then(_.bind(function(pathId) {
+                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
+                    method: 'POST',
+                    data: JSON.stringify({lat: event.latLng.lat(), lng: event.latLng.lng()})
+                }).then(_.bind(function(s) {
+                    this.$el.find('.calculated').html(_.map(s, function(ll) {
+                        return '<li>' + ll[0] + '\n' + ll[1] + '</li>';
+                    }));
+                    this.$el.find('.plotted').prepend('<li>' + event.latLng.lat() + '\n' + event.latLng.lng() + '</li>');
+                }, this));
+            }, this));
         }
     });
     return Mainview;
