@@ -30,8 +30,55 @@ function(app, gmap) {
 
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
             this.rectangleClicked = _.bind(this.rectangleClicked, this);
-            this.rectangleMouseover = _.bind(this.rectangleMouseover, this);
-            this.rectangleMouseout = _.bind(this.rectangleMouseout, this);
+        },
+
+        events: {
+            'click .toggle_drawing' : 'toggleDrawing'
+        },
+
+        toggleDrawing: function(e) {
+            if(e) {
+                e.preventDefault();
+            }
+            if(this.drawing) {
+                delete this.drawing;
+                this.$el.find('.toggle_drawing').html('Start drawing');
+                this.drawingManager.setDrawingMode(null);
+            } else {
+                _.bind(function() {
+                    if(!this.pathId) {
+                        console.log('path drawing started, getting path id');
+                        return $.ajax(app.root + 'path', {
+                            method: 'GET'
+                        }).then(_.bind(function(pathId) {
+                            console.log('got path id ' + pathId);
+                            this.pathId = pathId;
+                            app.router.navigate(this.pathId, {trigger:false});
+                            this.$el.find('.info').prepend('<li>You are now editing unsaved path \'' + pathId + '\'</li>');
+
+                            if(this.centerChangedListener) {
+                                google.maps.event.removeListener(this.centerChangedListener);
+                                delete this.centerChangedListener;
+                            }
+                            return pathId;
+                        }, this));
+                    }
+                    return $.when(this.pathId);
+                }, this)().then(_.bind(function(pathId) {
+                    this.drawing = true;
+                    this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
+                    this.$el.find('.toggle_drawing').html('Stop drawing');
+    //                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
+    //                    method: 'POST',
+    //                    data: JSON.stringify({lat: event.latLng.lat(), lng: event.latLng.lng()})
+    //                }).then(_.bind(function(s) {
+    //                    this.$el.find('.calculated').html(_.map(s, function(ll) {
+    //                        return '<li>' + ll[0] + '\n' + ll[1] + '</li>';
+    //                    }));
+    //                    this.$el.find('.plotted').prepend('<li>' + event.latLng.lat() + '\n' + event.latLng.lng() + '</li>');
+    //                }, this));
+                }, this));
+            }
         },
 
         afterRender: function() {
@@ -79,55 +126,12 @@ function(app, gmap) {
                 });
 
                 this.drawingManager.setMap(this.map);
-                google.maps.event.addListener(this.rectangle, 'rightclick', this.rectangleClicked);
-                google.maps.event.addListener(this.rectangle, 'mouseover', this.rectangleMouseover);
-                google.maps.event.addListener(this.rectangle, 'mouseout', this.rectangleMouseout);
+//                google.maps.event.addListener(this.rectangle, 'rightclick', this.rectangleClicked);
             }, this));
-            console.log(center);
-        },
-
-        rectangleMouseover: function(event) {
-            console.log('rectangle mouseover');
-            this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
-        },
-
-        rectangleMouseout: function(event) {
-            console.log('rectangle mouseout');
-            this.drawingManager.setDrawingMode(null);
         },
 
         rectangleClicked: function(event) {
             console.log('rectangle clicked ' + event.latLng);
-            _.bind(function() {
-                if(!this.pathId) {
-                    console.log('path drawing started, getting path id');
-                    return $.ajax(app.root + 'path', {
-                        method: 'GET'
-                    }).then(_.bind(function(pathId) {
-                        console.log('got path id ' + pathId);
-                        this.pathId = pathId;
-                        app.router.navigate(this.pathId, {trigger:false});
-                        this.$el.find('.info').prepend('<li>You are now editing unsaved path \'' + pathId + '\'</li>');
-
-                        if(this.centerChangedListener) {
-                            google.maps.event.removeListener(this.centerChangedListener);
-                            delete this.centerChangedListener;
-                        }
-                        return pathId;
-                    }, this));
-                }
-                return $.when(this.pathId);
-            }, this)().then(_.bind(function(pathId) {
-                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
-                    method: 'POST',
-                    data: JSON.stringify({lat: event.latLng.lat(), lng: event.latLng.lng()})
-                }).then(_.bind(function(s) {
-                    this.$el.find('.calculated').html(_.map(s, function(ll) {
-                        return '<li>' + ll[0] + '\n' + ll[1] + '</li>';
-                    }));
-                    this.$el.find('.plotted').prepend('<li>' + event.latLng.lat() + '\n' + event.latLng.lng() + '</li>');
-                }, this));
-            }, this));
         }
     });
     return Mainview;
