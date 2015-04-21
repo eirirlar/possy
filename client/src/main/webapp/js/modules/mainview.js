@@ -30,10 +30,18 @@ function(app, gmap) {
 
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
             this.rectangleClicked = _.bind(this.rectangleClicked, this);
+            this.rectangleMouseover = _.bind(this.rectangleMouseover, this);
+            this.rectangleMouseout = _.bind(this.rectangleMouseout, this);
         },
 
         afterRender: function() {
             this.map = new google.maps.Map(this.$el.find("#googleMap").get(0), this.mapProp);
+            this.drawingManager = new google.maps.drawing.DrawingManager({
+                drawingControl: false,
+                polylineOptions: {
+                    clickable: false
+                }
+            });
             if(!this.pathId) {
                 this.loadClosestElevationIfChanged();
                 this.centerChangedListener = google.maps.event.addListener(this.map, 'center_changed', this.centerChanged);
@@ -70,10 +78,22 @@ function(app, gmap) {
                     bounds: bounds
                 });
 
+                this.drawingManager.setMap(this.map);
                 google.maps.event.addListener(this.rectangle, 'rightclick', this.rectangleClicked);
-
+                google.maps.event.addListener(this.rectangle, 'mouseover', this.rectangleMouseover);
+                google.maps.event.addListener(this.rectangle, 'mouseout', this.rectangleMouseout);
             }, this));
             console.log(center);
+        },
+
+        rectangleMouseover: function(event) {
+            console.log('rectangle mouseover');
+            this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
+        },
+
+        rectangleMouseout: function(event) {
+            console.log('rectangle mouseout');
+            this.drawingManager.setDrawingMode(null);
         },
 
         rectangleClicked: function(event) {
