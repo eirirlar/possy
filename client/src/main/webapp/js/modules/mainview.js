@@ -15,7 +15,7 @@ function(app, gmap) {
             console.log('mainview init');
             this.mapProp = {
                 center: new google.maps.LatLng(defaultLocation[0], defaultLocation[1]),
-                zoom:5,
+                zoom:7,
                 mapTypeId: google.maps.MapTypeId.ROADMAP
             };
 
@@ -29,11 +29,12 @@ function(app, gmap) {
             }
 
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
-            this.rectangleClicked = _.bind(this.rectangleClicked, this);
+            this.polylineComplete = _.bind(this.polylineComplete, this);
         },
 
         events: {
-            'click .toggle_drawing' : 'toggleDrawing'
+            'click .toggle_drawing' : 'toggleDrawing',
+            'click .undo_last_point' : 'undoLastPoint'
         },
 
         toggleDrawing: function(e) {
@@ -67,6 +68,9 @@ function(app, gmap) {
                 }, this)().then(_.bind(function(pathId) {
                     this.drawing = true;
                     this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
+                    if(this.polyline) {
+                        this.drawingManager.polylineOptions.path = this.polyline.getPath();
+                    }
                     this.$el.find('.toggle_drawing').html('Stop drawing');
     //                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
     //                    method: 'POST',
@@ -81,12 +85,26 @@ function(app, gmap) {
             }
         },
 
+        undoLastPoint: function(e) {
+            if(e) {
+                e.preventDefault();
+            }
+            if(this.drawing) {
+                this.toggleDrawing();
+            }
+            console.log('undo last point');
+            if(this.drawingManager) {
+
+            }
+        },
+
         afterRender: function() {
             this.map = new google.maps.Map(this.$el.find("#googleMap").get(0), this.mapProp);
             this.drawingManager = new google.maps.drawing.DrawingManager({
                 drawingControl: false,
                 polylineOptions: {
-                    clickable: false
+                    clickable: false,
+                    editable: true
                 }
             });
             if(!this.pathId) {
@@ -126,12 +144,16 @@ function(app, gmap) {
                 });
 
                 this.drawingManager.setMap(this.map);
-//                google.maps.event.addListener(this.rectangle, 'rightclick', this.rectangleClicked);
+                google.maps.event.addListener(this.drawingManager, 'polylinecomplete', this.polylineComplete);
+
             }, this));
         },
 
-        rectangleClicked: function(event) {
-            console.log('rectangle clicked ' + event.latLng);
+        polylineComplete: function(polyline) {
+            if(this.polyline) {
+                this.polyline.setMap(null);
+            }
+            this.polyline = polyline;
         }
     });
     return Mainview;
