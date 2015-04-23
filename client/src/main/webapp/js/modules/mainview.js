@@ -30,11 +30,11 @@ function(app, gmap) {
 
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
             this.polylineComplete = _.bind(this.polylineComplete, this);
+            this.polylineUpdated = _.bind(this.polylineUpdated, this);
         },
 
         events: {
             'click .toggle_drawing' : 'toggleDrawing',
-            'click .undo_last_point' : 'undoLastPoint'
         },
 
         toggleDrawing: function(e) {
@@ -71,7 +71,12 @@ function(app, gmap) {
                     if(this.polyline) {
                         this.drawingManager.polylineOptions.path = this.polyline.getPath();
                     }
+                    if(this.polyline) {
+                        this.polyline.setMap(null);
+                    }
                     this.$el.find('.toggle_drawing').html('Stop drawing');
+                    this.$el.find('.plotted').empty();
+                    this.$el.find('.calculated').empty();
     //                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
     //                    method: 'POST',
     //                    data: JSON.stringify({lat: event.latLng.lat(), lng: event.latLng.lng()})
@@ -85,26 +90,14 @@ function(app, gmap) {
             }
         },
 
-        undoLastPoint: function(e) {
-            if(e) {
-                e.preventDefault();
-            }
-            if(this.drawing) {
-                this.toggleDrawing();
-            }
-            console.log('undo last point');
-            if(this.drawingManager) {
-
-            }
-        },
-
         afterRender: function() {
             this.map = new google.maps.Map(this.$el.find("#googleMap").get(0), this.mapProp);
             this.drawingManager = new google.maps.drawing.DrawingManager({
                 drawingControl: false,
                 polylineOptions: {
-                    clickable: false,
-                    editable: true
+                    clickable: true,
+                    editable: true,
+                    draggable: true
                 }
             });
             if(!this.pathId) {
@@ -140,7 +133,8 @@ function(app, gmap) {
                     fillColor: '#FF0000',
                     fillOpacity: 0.35,
                     map: this.map,
-                    bounds: bounds
+                    bounds: bounds,
+                    clickable: false
                 });
 
                 this.drawingManager.setMap(this.map);
@@ -152,8 +146,48 @@ function(app, gmap) {
         polylineComplete: function(polyline) {
             if(this.polyline) {
                 this.polyline.setMap(null);
+                google.maps.event.clearInstanceListeners(this.polyline);
+            }
+            if(this.drawing) {
+                this.toggleDrawing();
             }
             this.polyline = polyline;
+            google.maps.event.addListener(this.polyline, "dragend", this.polylineUpdated);
+            google.maps.event.addListener(this.polyline.getPath(), "insert_at", this.polylineUpdated);
+            google.maps.event.addListener(this.polyline.getPath(), "remove_at",this.polylineUpdated);
+            google.maps.event.addListener(this.polyline.getPath(), "set_at", this.polylineUpdated);
+            if(this.checkPolyline()) {
+                this.updatePlotted(this.polyline.getPath().getArray());
+            } else {
+                this.updatePlotted([]);
+            }
+        },
+
+        checkPolyline: function() {
+            if(this.polylineInsideRectangle()) return true;
+            alert('Some points of polyline is outside rectangle');
+        },
+
+        polylineInsideRectangle: function(polyline) {
+            polyline = polyline ? polyline : this.polyline;
+            if(!this.rectangle || !polyline) return;
+            return _.all(polyline.getPath().getArray(), function(ll) {
+                return this.rectangle.getBounds().contains(ll);
+            }, this);
+        },
+
+        polylineUpdated: function() {
+            if(this.checkPolyline()) {
+                this.updatePlotted(this.polyline.getPath().getArray());
+            } else {
+                this.updatePlotted([]);
+            }
+        },
+
+        updatePlotted: function(array) {
+            this.$el.find('.plotted').html(_.map(array, function(ll) {
+                return '<li>' + ll.lat() + '\n' + ll.lng() + '</li>';
+            }, this));
         }
     });
     return Mainview;

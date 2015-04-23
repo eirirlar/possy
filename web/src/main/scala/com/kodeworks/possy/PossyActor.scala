@@ -57,7 +57,7 @@ class PossyActor(demPath: String) extends Actor {
         val a = dems(s.head).typeA
         val ne = Geokonvert.transformFromUTM(a.northingOfNE, a.eastingOfNE, 33, DatumProvider.WGS84)
         val sw = Geokonvert.transformFromUTM(a.northingOfSE, a.eastingOfNW, 33, DatumProvider.WGS84)
-        sender ! ElevationModel(ne.getX.toFloat, sw.getY.toFloat, sw.getX.toFloat, ne.getY.toFloat)
+        sender ! ElevationModel(sw.getX.toFloat, sw.getY.toFloat, ne.getX.toFloat, ne.getY.toFloat)
       }
       else sender ! ElevationModel(lat + 5f, lng - 5f, lat - 5f, lng + 5f)
     }
