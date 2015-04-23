@@ -72,22 +72,20 @@ function(app, gmap) {
                     if(this.polyline) {
                         this.drawingManager.polylineOptions.path = this.polyline.getPath();
                     }
-                    if(this.polyline) {
-                        this.polyline.setMap(null);
-                    }
+                    this.resetCalc();
+                    this.clearPolyline();
                     this.$el.find('.toggle_drawing').html('Stop drawing');
                     this.$el.find('.plotted').empty();
                     this.$el.find('.calculated').empty();
-    //                $.ajax(app.root + 'path/' + pathId + '/addPoint', {
-    //                    method: 'POST',
-    //                    data: JSON.stringify({lat: event.latLng.lat(), lng: event.latLng.lng()})
-    //                }).then(_.bind(function(s) {
-    //                    this.$el.find('.calculated').html(_.map(s, function(ll) {
-    //                        return '<li>' + ll[0] + '\n' + ll[1] + '</li>';
-    //                    }));
-    //                    this.$el.find('.plotted').prepend('<li>' + event.latLng.lat() + '\n' + event.latLng.lng() + '</li>');
-    //                }, this));
                 }, this));
+            }
+        },
+
+        clearPolyline: function() {
+            if(this.polyline) {
+                this.polyline.setMap(null);
+                google.maps.event.clearInstanceListeners(this.polyline);
+                this.polyline = null;
             }
         },
 
@@ -145,10 +143,7 @@ function(app, gmap) {
         },
 
         polylineComplete: function(polyline) {
-            if(this.polyline) {
-                this.polyline.setMap(null);
-                google.maps.event.clearInstanceListeners(this.polyline);
-            }
+            this.clearPolyline();
             if(this.drawing) {
                 this.toggleDrawing();
             }
@@ -183,19 +178,47 @@ function(app, gmap) {
             } else {
                 this.updatePlotted([]);
             }
+            this.resetCalc();
         },
 
         updatePlotted: function(array) {
             this.$el.find('.plotted').html(_.map(array, function(ll) {
-                return '<li>' + ll.lat() + '\n' + ll.lng() + '</li>';
+                return '<li>' + ll.lat().toFixed(6) + ' ' + ll.lng().toFixed(6) + '</li>';
             }, this));
         },
 
         calculatePath: function(e) {
             if(e) {
-                e.preventDefault;
+                e.preventDefault();
             }
-            console.log('calculate path');
+            if(this.calcing || !this.polyline) return;
+            if(this.calcIndex == this.polyline.getPath().getArray().length - 1) return;
+            this.calcing = true;
+            this.calcIndex = _.isNumber(this.calcIndex) ? (this.calcIndex + 1) : 0;
+            var pe = this.$el.find('.plotted li:eq(' + this.calcIndex + ')');
+            pe.addClass('calcing');
+            var ll = this.polyline.getPath().getArray()[this.calcIndex];
+            $.ajax(app.root + 'path/' + this.pathId + '/calcPath', {
+                method: 'POST',
+                data: JSON.stringify({lat: ll.lat(), lng: ll.lng()})
+            }).then(_.bind(function(s) {
+                this.$el.find('.calculated').html(_.map(s, function(ll) {
+                    return '<li>' + ll[0].toFixed(6) + ' ' + ll[1].toFixed(6) + '</li>';
+                }));
+                pe.removeClass('calcing');
+                delete this.calcing;
+            }, this));
+        },
+
+        resetCalc: function() {
+            if(!_.isNumber(this.calcIndex)) return;
+            $.ajax(app.root + 'path/' + this.pathId + '/resetCalc', {
+                method: 'GET'
+            }).then(_.bind(function(s) {
+                this.$el.find('.calculated').empty();
+                delete this.calcing;
+                delete this.calcIndex;
+            }, this));
         }
     });
     return Mainview;

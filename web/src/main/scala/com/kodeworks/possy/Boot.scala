@@ -61,7 +61,7 @@ object Boot extends App {
           complete(HttpResponse(headers = responseHeaders, entity = HttpEntity.Strict(ContentTypes.`text/plain(UTF-8)`,
             ByteString(pathCalculator.path.name))))
         }) ~
-        (path("possy" / "path" / Segment / "addPoint") & post & extractRequest)((pathId, req) => {
+        (path("possy" / "path" / Segment / "calcPath") & post & extractRequest)((pathId, req) => {
           val data = URLDecoder.decode(req.entity.asInstanceOf[HttpEntity.Strict].data.utf8String, "UTF-8")
           import argonaut._
           import Argonaut._
@@ -70,11 +70,16 @@ object Boot extends App {
           complete((system.actorSelection(lookup + pathId) ? p) map { r => {
             HttpResponse(headers = responseHeaders,
               entity = HttpEntity.Strict(ContentTypes.`application/json`,
-                ByteString(r.asInstanceOf[List[(Float,Float)]].asJson.toString)))
+                ByteString(r.asInstanceOf[List[(Float, Float)]].asJson.toString)))
+          }
+          })
+        }) ~
+        (path("possy" / "path" / Segment / "resetCalc") & get)(pathId => {
+          complete((system.actorSelection(lookup + pathId) ? ResetCalc) map { r => {
+            HttpResponse(headers = responseHeaders)
           }
           })
         })
     connection.handleWithAsyncHandler(Route.asyncHandler(route))
-
   }).run()
 }
