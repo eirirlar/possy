@@ -198,11 +198,18 @@ function(app, gmap) {
                 this.calcIndex = this.calcIndex + 1;
             } else {
                 this.calcIndex = 0;
-                this.calcedPolyline = new google.maps.Polyline({
+                this.donePolyline = new google.maps.Polyline({
                     strokeColor: '#FFFF00',
                     strokeOpacity: 1.0,
                     strokeWeight: 2,
                     zIndex: 2
+                });
+                this.donePolyline.setMap(this.map);
+                this.calcedPolyline = new google.maps.Polyline({
+                    strokeColor: '#00FFFF',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                    zIndex: 1
                 });
                 this.calcedPolyline.setMap(this.map);
             }
@@ -214,7 +221,10 @@ function(app, gmap) {
                 method: 'POST',
                 data: JSON.stringify({lat: ll.lat(), lng: ll.lng()})
             }).then(_.bind(function(s) {
-                this.calcedPolyline.getPath().push(ll);
+                this.donePolyline.getPath().push(ll);
+                this.calcedPolyline.setPath(_.map(s, function(ll) {
+                    return new google.maps.LatLng(ll[0], ll[1]);
+                }));
                 this.$el.find('.calculated').html(_.map(s, function(ll) {
                     return '<li>' + ll[0].toFixed(6) + ' ' + ll[1].toFixed(6) + '</li>';
                 }));
@@ -231,6 +241,8 @@ function(app, gmap) {
                 this.$el.find('.calculated').empty();
                 delete this.calcing;
                 delete this.calcIndex;
+                this.donePolyline.setMap(null);
+                delete this.donePolyline;
                 this.calcedPolyline.setMap(null);
                 delete this.calcedPolyline;
             }, this));
