@@ -35,6 +35,7 @@ function(app, gmap) {
 
         events: {
             'click .toggle_drawing' : 'toggleDrawing',
+            'click .calculate_path' : 'calculatePath'
         },
 
         toggleDrawing: function(e) {
@@ -188,6 +189,13 @@ function(app, gmap) {
             this.$el.find('.plotted').html(_.map(array, function(ll) {
                 return '<li>' + ll.lat() + '\n' + ll.lng() + '</li>';
             }, this));
+        },
+
+        calculatePath: function(e) {
+            if(e) {
+                e.preventDefault;
+            }
+            console.log('calculate path');
         }
     });
     return Mainview;
