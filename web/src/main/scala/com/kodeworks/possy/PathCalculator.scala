@@ -12,7 +12,7 @@ class PathCalculator extends Actor {
     case LatLng(lat, lng) => {
       log.debug("lat lng")
       path = (lat, lng) :: path
-      sender ! path.map(ll => (ll._1 + math.random.toFloat - .5f) -> (ll._2 + math.random.toFloat - .5f))
+      sender ! path.map(ll => (ll._1 +.02f * math.random.toFloat - .01f) -> (ll._2 +.02f * math.random.toFloat - .01f))
     }
     case ResetCalc => {
       log.debug("reset calc")
