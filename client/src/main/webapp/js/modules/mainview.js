@@ -99,10 +99,9 @@ function(app, gmap) {
                     draggable: true
                 }
             });
-            if(!this.pathId) {
-                this.loadClosestElevationIfChanged();
-                this.centerChangedListener = google.maps.event.addListener(this.map, 'center_changed', this.centerChanged);
-            }
+            google.maps.event.addListener(this.drawingManager, 'polylinecomplete', this.polylineComplete);
+            this.loadClosestElevationIfChanged();
+            this.centerChangedListener = google.maps.event.addListener(this.map, 'center_changed', this.centerChanged);
         },
 
         centerChanged: function() {
@@ -111,6 +110,7 @@ function(app, gmap) {
         },
 
         loadClosestElevationIfChanged: function() {
+            if(this.pathId) return;
             var center = this.map.getCenter();
             if(this.rectangle && this.rectangle.getBounds().contains(center)) return;
             $.ajax(app.root + 'loadClosestElevationIfChanged', {
@@ -137,8 +137,6 @@ function(app, gmap) {
                 });
 
                 this.drawingManager.setMap(this.map);
-                google.maps.event.addListener(this.drawingManager, 'polylinecomplete', this.polylineComplete);
-
             }, this));
         },
 
