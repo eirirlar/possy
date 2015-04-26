@@ -67,7 +67,7 @@ object Boot extends App {
           import Argonaut._
           val p = data.decodeOption[LatLng].get
           log.debug("parsed: {}", p)
-          complete((system.actorSelection(lookup + pathId) ? p) map { r => {
+          complete((system.actorSelection(lookup + pathId) ? CalcPath(p)) map { r => {
             HttpResponse(headers = responseHeaders,
               entity = HttpEntity.Strict(ContentTypes.`application/json`,
                 ByteString(r.asInstanceOf[List[(Float, Float)]].asJson.toString)))

@@ -11,6 +11,7 @@ import geokonvert.datums.{DatumUtils, DatumProvider}
 import geokonvert.scala.Geokonvert
 import org.slf4j.LoggerFactory
 
+import scala.None
 import scala.concurrent.Future
 import scala.io.{Codec, Source}
 import akka.pattern.pipe
@@ -49,18 +50,30 @@ class PossyActor(demPath: String) extends Actor {
     }).asScala.toList
   }
 
+  def getClosestDem(lat: Float, lng: Float): Option[Dem] = {
+    if (dems.nonEmpty) {
+      val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
+      val s = dems.keys.toList.sortBy(k => distancePow(k._1, k._2, u.E.toFloat, u.N.toFloat))
+      Some(dems(s.head))
+    } else None
+  }
+
   override def receive = {
     case LatLng(lat, lng) => {
-      if (dems.nonEmpty) {
-        val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
-        val s = dems.keys.toList.sortBy(k => distancePow(k._1, k._2, u.E.toFloat, u.N.toFloat))
-        val a = dems(s.head).typeA
-        val ne = Geokonvert.transformFromUTM(a.northingOfNE, a.eastingOfNE, 33, DatumProvider.WGS84)
-        val sw = Geokonvert.transformFromUTM(a.northingOfSE, a.eastingOfNW, 33, DatumProvider.WGS84)
-        sender ! ElevationModel(sw.getX.toFloat, sw.getY.toFloat, ne.getX.toFloat, ne.getY.toFloat)
+      getClosestDem(lat, lng) match {
+        case Some(Dem(a, _)) => {
+          val ne = Geokonvert.transformFromUTM(a.northingOfNE, a.eastingOfNE, 33, DatumProvider.WGS84)
+          val sw = Geokonvert.transformFromUTM(a.northingOfSE, a.eastingOfNW, 33, DatumProvider.WGS84)
+          sender ! ElevationModel(sw.getX.toFloat, sw.getY.toFloat, ne.getX.toFloat, ne.getY.toFloat)
+        }
+        case _ => sender ! ElevationModel(lat - 5f, lng - 5f, lat + 5f, lng + 5f)
       }
-      else sender ! ElevationModel(lat - 5f, lng - 5f, lat + 5f, lng + 5f)
     }
+
+    case GetClosestDem(LatLng(lat, lng)) => {
+      sender ! getClosestDem(lat, lng)
+    }
+
     case dems: List[Dem] => {
       this.dems = dems.map(dem => {
         log.debug(s"${dem.typeA.name}\neastingOfNE ${dem.typeA.eastingOfNE}\neastingOfNW ${dem.typeA.eastingOfNW}\neastingOfSE ${dem.typeA.eastingOfSE}\neastingOfSW ${dem.typeA.eastingOfSW}\n" +

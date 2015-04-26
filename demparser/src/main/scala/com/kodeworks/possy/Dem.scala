@@ -1,6 +1,10 @@
 package com.kodeworks.possy
 
+import breeze.linalg.DenseMatrix
+
 import scala.collection.immutable.VectorBuilder
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 
 case class Dem(
@@ -56,6 +60,13 @@ case class RecordTypeBHead(
 case class RecordTypeBTail(
                             elevations: Vector[Short]
                             ) extends Record
+
+class SimpleDem(
+                 val northingOfNE: Float,
+                 val eastingOfNE: Float,
+                 val northingOfSW: Float,
+                 val eastingOfSW: Float,
+                 val grid: DenseMatrix[Short])
 
 //usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
 class DemBuilder {
@@ -115,3 +126,41 @@ class DemBuilder {
     Dem(typeA, typeBs.result)
   }
 }
+
+class SimpleDemBuilder {
+  var typeA: RecordTypeA = null
+  var cols: Int = -1
+  val grid: mutable.ArrayBuilder[Short] = mutable.ArrayBuilder.make()
+
+  def apply(typeA: RecordTypeA) {
+    this.typeA = typeA
+  }
+
+  def apply(typeBHead: RecordTypeBHead) {
+    cols = typeBHead.numMElevations
+    grid ++= typeBHead.elevations
+  }
+
+  def apply(typeBTail: RecordTypeBTail) {
+    this.grid ++= typeBTail.elevations
+  }
+
+  def apply(record: Record): SimpleDemBuilder = {
+    record match {
+      case a: RecordTypeA => apply(a)
+      case bh: RecordTypeBHead => apply(bh)
+      case bt: RecordTypeBTail => apply(bt)
+    }
+    this
+  }
+
+  def build() = {
+    new SimpleDem(
+      typeA.northingOfNE,
+      typeA.eastingOfNE,
+      typeA.northingOfSW,
+      typeA.eastingOfSW,
+      DenseMatrix.create(typeA.numberOfColumns, cols, grid.result))
+  }
+}
+
