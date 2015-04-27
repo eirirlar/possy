@@ -3,22 +3,22 @@ package com.kodeworks.possy
 import breeze.linalg.DenseMatrix
 import com.kodeworks.possy.Dijkstra._
 
+import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ListBuffer
 
 object MatrixPossy {
-  /*
   //TODO support dynamic version, same graph but with nodes removed in beginning or added in end
-  def calculatePath(grid: DenseMatrix[Short], values: List[Int]): List[(Int, Int)] = {
+  def calculatePath(grid: DenseMatrix[Short], values: List[Short]): List[(Int, Int)] = {
     val start = 0xffff0000
     val end = 0x0000ffff
     val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
-    var valueMappedToGridIndicesPrev: List[Int] = discover(grid, values(0))
+    var valueMappedToGridIndicesPrev: List[Int] = discover(grid, values(0)).toList
     val valueMappedToGridIndicesList = ListBuffer[List[Int]](valueMappedToGridIndicesPrev)
 
     var i = 1
     while (i < values.size) {
       val value = values(i)
-      val valueMappedToGridIndices: List[Int] = discover(grid, value)
+      val valueMappedToGridIndices: List[Int] = discover(grid, value).toList
       valueMappedToGridIndicesList.append(valueMappedToGridIndices)
 
       var j = 0
@@ -30,7 +30,7 @@ object MatrixPossy {
         while (k < valueMappedToGridIndices.size) {
           val gridIndex: Int = valueMappedToGridIndices(k)
           //TODO memo distances?
-          val gridIndexDistance = distance(grid.size, gridIndexPrev, gridIndex)
+          val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
           //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
           distanceList.append((gridIndexDistance.toDouble, combine(i, k)))
           k += 1
@@ -62,32 +62,19 @@ object MatrixPossy {
 
     val shortestPath: (Double, List[Int]) = dijkstra(graph.toMap, fringe, end, Set())
     val shortestPathCoords = shortestPath._2.slice(1, shortestPath._2.size - 1).map(c => {
-      val s = split(c)
-      toGridCoords(grid.size, valueMappedToGridIndicesList(s._1)(s._2))
+      val s: (Int, Int) = split(c)
+      grid.rowColumnFromLinearIndex(valueMappedToGridIndicesList(s._1)(s._2))
     })
-    (shortestPath._1, shortestPathCoords)
+    shortestPathCoords
   }
 
-  def discover(grid: DenseMatrix[Short], target: Int): List[Int] = {
-    val l: ListBuffer[Int] = ListBuffer()
-    var i = 0
-    while (i < grid.rows) {
-      var js = grid(i)
-      var j = 0
-      while (j < grid.cols) {
-        val value = js(j)
-        //TODO match on other criteria (range?) and include probability of match
-        if (target == value) l.append(toGridIndex(grid.size, i, j))
-        j += 1
-      }
-      i += 1
-    }
-    l.toList
+  def discover(grid: DenseMatrix[Short], target: Short): IndexedSeq[Int] = {
+    grid.findAll(_ == target).map(rc => grid.linearIndex(rc._1, rc._2))
   }
 
-  def distance(width: Int, fromIndex: Int, toIndex: Int): Int = {
-    val xy0 = toGridCoords(width, fromIndex)
-    val xy1 = toGridCoords(width, toIndex)
+  def distance(grid: DenseMatrix[Short], fromIndex: Int, toIndex: Int): Int = {
+    val xy0 = grid.rowColumnFromLinearIndex(fromIndex)
+    val xy1 = grid.rowColumnFromLinearIndex(toIndex)
     val x = xy1._1 - xy0._1
     val y = xy1._2 - xy0._2
     x * x + y * y
@@ -101,8 +88,8 @@ object MatrixPossy {
     (k & 0x0000ffff, (k >> 16) & 0x0000ffff)
   }
 
-  def toGridIndex(gridWidth: Int, x: Int, y: Int): Int = x * gridWidth + y
-
-  def toGridCoords(gridWidth: Int, gridIndex: Int): (Int, Int) = (gridIndex % gridWidth, gridIndex / gridWidth)
-  */
+  //
+  //  def toGridIndex(gridWidth: Int, x: Int, y: Int): Int = x * gridWidth + y
+  //
+  //  def toGridCoords(gridWidth: Int, gridIndex: Int): (Int, Int) = (gridIndex % gridWidth, gridIndex / gridWidth)
 }

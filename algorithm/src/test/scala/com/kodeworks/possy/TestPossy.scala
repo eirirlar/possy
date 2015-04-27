@@ -1,5 +1,6 @@
 package com.kodeworks.possy
 
+import breeze.linalg.DenseMatrix
 import org.junit.{Assert, Test}
 
 class TestPossy {
@@ -19,8 +20,22 @@ class TestPossy {
   }
 
   @Test
+  def testMatrixPossy {
+    println("matrixGrid\n" + matrixGrid)
+    println("path\n" + path)
+    println("matrixValues\n" + matrixValues)
+    val g = matrixGrid
+    val v = matrixValues
+    val start = System.nanoTime
+    val calculatedPath = MatrixPossy.calculatePath(g, v)
+    val end = System.nanoTime
+    println((end - start) + " nanoseconds")
+    println("calcPath\n" + calculatedPath)
+  }
+
+  @Test
   def testDistance {
-    Assert.assertEquals(5, Possy.distance(3, 5, 6))
+    Assert.assertEquals(26, MatrixPossy.distance(matrixGrid, 6, 11))
   }
 
   @Test
@@ -68,9 +83,14 @@ object TestPossy {
     List(5, 5, 6, 7, 7, 7, 4, 3, 2, 3, 4),
     List(4, 4, 4, 5, 6, 5, 6, 7, 4, 5, 1)
   )
+
+  val matrixGrid = DenseMatrix.create(grid.size, grid(0).size, grid.transpose.flatten.map(_.toShort).toArray)
+
   val path = List(
     (0, 0), (1, 1), (2, 1), (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5)
   )
   val values = path.map(p => grid(p._2)(p._1))
+
+  val matrixValues = path.map(rc => matrixGrid(rc._1, rc._2))
 
 }
