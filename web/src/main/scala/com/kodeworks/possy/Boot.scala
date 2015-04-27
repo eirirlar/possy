@@ -74,6 +74,19 @@ object Boot extends App {
           }
           })
         }) ~
+        (path("possy" / "path" / Segment / "getElevation") & post & extractRequest)((pathId, req) => {
+          val data = URLDecoder.decode(req.entity.asInstanceOf[HttpEntity.Strict].data.utf8String, "UTF-8")
+          import argonaut._
+          import Argonaut._
+          val p = data.decodeOption[LatLng].get
+          log.debug("parsed: {}", p)
+          complete((system.actorSelection(lookup + pathId) ? GetElevation(p)) map { r => {
+            HttpResponse(headers = responseHeaders,
+              entity = HttpEntity.Strict(ContentTypes.`application/json`,
+                ByteString(r.asInstanceOf[Short].asJson.toString)))
+          }
+          })
+        }) ~
         (path("possy" / "path" / Segment / "resetCalc") & get)(pathId => {
           complete((system.actorSelection(lookup + pathId) ? ResetCalc) map { r => {
             HttpResponse(headers = responseHeaders)

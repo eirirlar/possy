@@ -1,24 +1,31 @@
 package com.kodeworks.possy
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
+import akka.pattern.ask
+import akka.util.Timeout
+import com.kodeworks.possy.Boot.possy
 import com.kodeworks.possy.Model._
+import com.kodeworks.possy.PathCalculator._
 import geokonvert.datums.DatumProvider
 import geokonvert.scala.Geokonvert
 import org.slf4j.LoggerFactory
-import PathCalculator._
-import Boot.possy
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class PathCalculator extends Actor {
+  implicit def ctx = context.dispatcher
+  implicit val timeout = Timeout(5 seconds)
+
   var path = List[(Float, Float)]()
   var dem: SimpleDem = null
 
   override def receive = {
-    case CalcPath(l@LatLng(lat, lng)) if path.isEmpty => {
-      possy ! GetClosestDem(l)
-      calcPath(lat, lng)
+    case CalcPath(ll@LatLng(lat, lng)) => checkNoDem(ll) onSuccess {
+      case sender => sender ! calcPath(lat, lng)
     }
-    case CalcPath(LatLng(lat, lng)) => {
-      calcPath(lat, lng)
+    case GetElevation(l@LatLng(lat, lng)) => checkNoDem(l) onSuccess {
+      case sender => sender ! elevation(lat, lng)
     }
     case ResetCalc => {
       log.debug("reset calc")
@@ -29,16 +36,32 @@ class PathCalculator extends Actor {
     case Some(d: SimpleDem) => this.dem = d
   }
 
-  def calcPath(lat: Float, lng: Float): Unit = {
+  def checkNoDem(ll: LatLng): Future[ActorRef] = {
+    val zender = sender
+    if (null == dem) possy ? GetClosestDem(ll) map {
+      case Some(d: SimpleDem) => {
+        this.dem = d
+        zender
+      }
+    }
+    else Future.successful(zender)
+  }
+
+  def calcPath(lat: Float, lng: Float): List[(Float, Float)] = {
     log.debug("lat lng")
     path = (lat, lng) :: path
-    val values = path.map(ll => {
-      val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
-      //TODO gridify
-      //sdem.grid(u.N, u.E.toFloat)
-    })
-    sender ! path.map(ll => (ll._1 +.02f * math.random.toFloat - .01f) -> (ll._2 +.02f * math.random.toFloat - .01f))
+    val elevs = elevations
+    path.map(ll => (ll._1 +.02f * math.random.toFloat - .01f) -> (ll._2 +.02f * math.random.toFloat - .01f))
   }
+
+  def elevation(lat: Float, lng: Float): Short = {
+    val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
+    val (n, e) = dem.snapToGrid(u.N.toInt, u.E.toInt)
+    dem.grid(n, e)
+  }
+
+  def elevations =
+    path.map(ll => elevation(ll._1, ll._2))
 }
 
 object PathCalculator {

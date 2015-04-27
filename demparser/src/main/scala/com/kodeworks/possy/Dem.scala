@@ -63,13 +63,21 @@ case class RecordTypeBTail(
 
 class SimpleDem(
                  val name: String,
-                 val northingOfNE: Float,
-                 val eastingOfNE: Float,
-                 val northingOfSW: Float,
-                 val eastingOfSW: Float,
+                 val northingOfNE: Int,
+                 val eastingOfNE: Int,
+                 val northingOfSW: Int,
+                 val eastingOfSW: Int,
                  val resolutionX: Int,
                  val resolutionY: Int,
-                 val grid: DenseMatrix[Short])
+                 val grid: DenseMatrix[Short]) {
+  private def snapTo(snappable: Int, resolution: Int): Int = {
+    math.round(snappable.toFloat / resolution.toFloat)
+  }
+
+  def snapToGrid(northing: Int, easting: Int): (Int, Int) = {
+    snapTo(northing - northingOfSW, resolutionY) -> snapTo(easting - eastingOfSW, resolutionX)
+  }
+}
 
 //usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
 class DemBuilder {
@@ -160,10 +168,10 @@ class SimpleDemBuilder {
   def build() = {
     new SimpleDem(
       typeA.name,
-      typeA.northingOfNE,
-      typeA.eastingOfNE,
-      typeA.northingOfSW,
-      typeA.eastingOfSW,
+      typeA.northingOfNE.toInt,
+      typeA.eastingOfNE.toInt,
+      typeA.northingOfSW.toInt,
+      typeA.eastingOfSW.toInt,
       typeA.resolutionX.toInt,
       typeA.resolutionY.toInt,
       DenseMatrix.create(typeA.numberOfColumns, cols, grid.result))

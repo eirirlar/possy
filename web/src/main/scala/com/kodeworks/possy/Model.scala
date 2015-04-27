@@ -17,12 +17,8 @@ object Model {
 
   case class CalcPath(latLng: LatLng)
 
+  case class GetElevation(latLng: LatLng)
+
   implicit def LatLngCodec =
     casecodec2(LatLng.apply, LatLng.unapply)("lat", "lng")
-
-  implicit def GetClosestDemCodec =
-    casecodec1(GetClosestDem.apply, GetClosestDem.unapply)("latLng")
-
-  implicit def CalcPathCodec =
-    casecodec1(CalcPath.apply, CalcPath.unapply)("latLng")
 }

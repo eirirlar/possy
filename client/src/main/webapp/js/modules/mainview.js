@@ -31,11 +31,13 @@ function(app, gmap) {
             this.centerChanged = _.debounce(_.bind(this.centerChanged, this), 1000);
             this.polylineComplete = _.bind(this.polylineComplete, this);
             this.polylineUpdated = _.bind(this.polylineUpdated, this);
+            this.checkElevation = _.bind(this.checkElevation, this);
         },
 
         events: {
             'click .toggle_drawing' : 'toggleDrawing',
-            'click .calculate_path' : 'calculatePath'
+            'click .calculate_path' : 'calculatePath',
+            'click .toggle_elev' : 'toggleElev'
         },
 
         toggleDrawing: function(e) {
@@ -67,18 +69,25 @@ function(app, gmap) {
                     }
                     return $.when(this.pathId);
                 }, this)().then(_.bind(function(pathId) {
+                    this.clearDrawing();
                     this.drawing = true;
                     this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYLINE);
                     if(this.polyline) {
                         this.drawingManager.polylineOptions.path = this.polyline.getPath();
                     }
-                    this.resetCalc();
-                    this.clearPolyline();
-                    this.$el.find('.toggle_drawing').html('Stop drawing');
-                    this.$el.find('.plotted').empty();
-                    this.$el.find('.calculated').empty();
+                    if(this.elev) {
+                        this.toggleElev();
+                    }
                 }, this));
             }
+        },
+
+        clearDrawing: function() {
+            this.resetCalc();
+            this.clearPolyline();
+            this.$el.find('.toggle_drawing').html('Stop drawing');
+            this.$el.find('.plotted').empty();
+            this.$el.find('.calculated').empty();
         },
 
         clearPolyline: function() {
@@ -243,6 +252,37 @@ function(app, gmap) {
                 delete this.donePolyline;
                 this.calcedPolyline.setMap(null);
                 delete this.calcedPolyline;
+            }, this));
+        },
+
+        toggleElev: function(e) {
+            if(e) {
+                e.preventDefault();
+            }
+            if(!this.pathId) return;
+            if(this.elev) {
+                delete this.elev;
+                this.$el.find('.toggle_elev').html('Start elevation checking');
+                google.maps.event.removeListener(this.checkElevationListener);
+
+            } else {
+                this.elev = true;
+                this.$el.find('.toggle_elev').html('Stop elevation checking');
+                if(this.drawing) {
+                    this.toggleDrawing();
+                }
+                this.checkElevationListener = google.maps.event.addListener(this.map, 'click', this.checkElevation);
+            }
+        },
+
+        checkElevation: function(e) {
+            console.log('check elevation ' + e.latLng.lat() + ' ' + e.latLng.lng());
+            $.ajax(app.root + 'path/' + this.pathId + '/getElevation', {
+                method: 'POST',
+                data: JSON.stringify({lat: e.latLng.lat(), lng: e.latLng.lng()})
+            }).then(_.bind(function(elevation) {
+                console.log('elevation checked ' + elevation);
+
             }, this));
         }
     });
