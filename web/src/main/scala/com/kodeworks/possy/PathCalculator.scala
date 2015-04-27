@@ -15,7 +15,8 @@ import scala.concurrent.duration._
 
 class PathCalculator extends Actor {
   implicit def ctx = context.dispatcher
-  implicit val timeout = Timeout(5 seconds)
+
+  implicit val timeout = Timeout(500 seconds)
 
   var path = List[(Float, Float)]()
   var dem: SimpleDem = null
@@ -25,7 +26,7 @@ class PathCalculator extends Actor {
       case sender => sender ! calcPath(lat, lng)
     }
     case GetElevation(l@LatLng(lat, lng)) => checkNoDem(l) onSuccess {
-      case sender => sender ! elevation(lat, lng)
+      case sender => sender ! elevation(lat, lng).toFloat / dem.resolutionZ
     }
     case ResetCalc => {
       log.debug("reset calc")
@@ -47,11 +48,21 @@ class PathCalculator extends Actor {
     else Future.successful(zender)
   }
 
-  def calcPath(lat: Float, lng: Float): List[(Float, Float)] = {
+  def calcPath(lat: Float, lng: Float): (Long, List[(Float, Float)]) = {
     log.debug("lat lng")
     path = (lat, lng) :: path
     val elevs = elevations
-    path.map(ll => (ll._1 +.02f * math.random.toFloat - .01f) -> (ll._2 +.02f * math.random.toFloat - .01f))
+    val start = System.nanoTime()
+    val calcedPath: List[(Int, Int)] = MatrixPossy.calculatePath(dem.grid, elevs)
+    val llCalcedPath: List[(Float, Float)] = calcedPath.map(gc => {
+      val n = gc._1 * dem.resolutionY + dem.northingOfSW
+      val e = gc._2 * dem.resolutionX + dem.eastingOfSW
+      val ll = Geokonvert.transformFromUTM(n, e, 33, DatumProvider.WGS84)
+      (ll.x.toFloat, ll.y.toFloat)
+    })
+    val end = System.nanoTime()
+    val time = (end - start) / 1000000L
+    time -> llCalcedPath
   }
 
   def elevation(lat: Float, lng: Float): Short = {
@@ -60,7 +71,7 @@ class PathCalculator extends Actor {
     dem.grid(n, e)
   }
 
-  def elevations =
+  def elevations: List[Short] =
     path.map(ll => elevation(ll._1, ll._2))
 }
 

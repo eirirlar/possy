@@ -33,7 +33,7 @@ object Boot extends App {
   implicit val system = ActorSystem("possy", config)
   implicit val materializer = ActorFlowMaterializer()
   implicit val ec = system.dispatcher
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(500 seconds)
 
   val possy = system.actorOf(Props(new PossyActor(demPath)))
 
@@ -70,7 +70,7 @@ object Boot extends App {
           complete((system.actorSelection(lookup + pathId) ? CalcPath(p)) map { r => {
             HttpResponse(headers = responseHeaders,
               entity = HttpEntity.Strict(ContentTypes.`application/json`,
-                ByteString(r.asInstanceOf[List[(Float, Float)]].asJson.toString)))
+                ByteString(r.asInstanceOf[(Long, List[(Float, Float)])].asJson.toString)))
           }
           })
         }) ~
@@ -83,7 +83,7 @@ object Boot extends App {
           complete((system.actorSelection(lookup + pathId) ? GetElevation(p)) map { r => {
             HttpResponse(headers = responseHeaders,
               entity = HttpEntity.Strict(ContentTypes.`application/json`,
-                ByteString(r.asInstanceOf[Short].asJson.toString)))
+                ByteString(r.asInstanceOf[Float].asJson.toString)))
           }
           })
         }) ~

@@ -69,6 +69,7 @@ class SimpleDem(
                  val eastingOfSW: Int,
                  val resolutionX: Int,
                  val resolutionY: Int,
+                 val resolutionZ: Float,
                  val grid: DenseMatrix[Short]) {
   private def snapTo(snappable: Int, resolution: Int): Int = {
     math.round(snappable.toFloat / resolution.toFloat)
@@ -77,6 +78,8 @@ class SimpleDem(
   def snapToGrid(northing: Int, easting: Int): (Int, Int) = {
     snapTo(northing - northingOfSW, resolutionY) -> snapTo(easting - eastingOfSW, resolutionX)
   }
+
+  def gridValue(northing: Int, easting: Int) = grid(northing, easting).toFloat / resolutionZ
 }
 
 //usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
@@ -174,6 +177,7 @@ class SimpleDemBuilder {
       typeA.eastingOfSW.toInt,
       typeA.resolutionX.toInt,
       typeA.resolutionY.toInt,
+      typeA.resolutionZ,
       DenseMatrix.create(typeA.numberOfColumns, cols, grid.result))
   }
 }

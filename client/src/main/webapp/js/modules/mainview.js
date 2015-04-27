@@ -227,14 +227,15 @@ function(app, gmap) {
             $.ajax(app.root + 'path/' + this.pathId + '/calcPath', {
                 method: 'POST',
                 data: JSON.stringify({lat: ll.lat(), lng: ll.lng()})
-            }).then(_.bind(function(s) {
+            }).then(_.bind(function(timeCalcedPath) {
                 this.donePolyline.getPath().push(ll);
-                this.calcedPolyline.setPath(_.map(s, function(ll) {
+                this.calcedPolyline.setPath(_.map(timeCalcedPath[1], function(ll) {
                     return new google.maps.LatLng(ll[0], ll[1]);
                 }));
-                this.$el.find('.calculated').html(_.map(s, function(ll) {
+                this.$el.find('.calculated').html(_.map(timeCalcedPath[1], function(ll) {
                     return '<li>' + ll[0].toFixed(6) + ' ' + ll[1].toFixed(6) + '</li>';
                 }));
+                this.$el.find('.calc_time').append('<li>' + timeCalcedPath[0] + 'millis</li>');
                 pe.removeClass('calcing');
                 delete this.calcing;
             }, this));
@@ -281,8 +282,7 @@ function(app, gmap) {
                 method: 'POST',
                 data: JSON.stringify({lat: e.latLng.lat(), lng: e.latLng.lng()})
             }).then(_.bind(function(elevation) {
-                console.log('elevation checked ' + elevation);
-
+                this.$el.find('.checked_elev').html(e.latLng.lat() + ' ' + e.latLng.lng() + ' ' + elevation);
             }, this));
         }
     });
