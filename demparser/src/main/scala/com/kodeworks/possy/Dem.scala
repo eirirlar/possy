@@ -67,6 +67,8 @@ class SimpleDem(
                  val eastingOfNE: Float,
                  val northingOfSW: Float,
                  val eastingOfSW: Float,
+                 val resolutionX: Int,
+                 val resolutionY: Int,
                  val grid: DenseMatrix[Short])
 
 //usage: typeA, typeBHead, typeBTail, typeBTail, typeBHead, typeBTail, typeBTail etc. change of this order is not supported
@@ -162,6 +164,8 @@ class SimpleDemBuilder {
       typeA.eastingOfNE,
       typeA.northingOfSW,
       typeA.eastingOfSW,
+      typeA.resolutionX.toInt,
+      typeA.resolutionY.toInt,
       DenseMatrix.create(typeA.numberOfColumns, cols, grid.result))
   }
 }
