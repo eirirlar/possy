@@ -62,6 +62,7 @@ case class RecordTypeBTail(
                             ) extends Record
 
 class SimpleDem(
+                 val name: String,
                  val northingOfNE: Float,
                  val eastingOfNE: Float,
                  val northingOfSW: Float,
@@ -156,6 +157,7 @@ class SimpleDemBuilder {
 
   def build() = {
     new SimpleDem(
+      typeA.name,
       typeA.northingOfNE,
       typeA.eastingOfNE,
       typeA.northingOfSW,

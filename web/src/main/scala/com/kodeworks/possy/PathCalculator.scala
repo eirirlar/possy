@@ -2,13 +2,15 @@ package com.kodeworks.possy
 
 import akka.actor.Actor
 import com.kodeworks.possy.Model._
+import geokonvert.datums.DatumProvider
+import geokonvert.scala.Geokonvert
 import org.slf4j.LoggerFactory
 import PathCalculator._
 import Boot.possy
 
 class PathCalculator extends Actor {
   var path = List[(Float, Float)]()
-  var dem: Dem = null
+  var dem: SimpleDem = null
 
   override def receive = {
     case CalcPath(l@LatLng(lat, lng)) if path.isEmpty => {
@@ -24,12 +26,17 @@ class PathCalculator extends Actor {
       dem = null
       sender ! Ok
     }
-    case Some(d: Dem) => this.dem = d
+    case Some(d: SimpleDem) => this.dem = d
   }
 
   def calcPath(lat: Float, lng: Float): Unit = {
     log.debug("lat lng")
     path = (lat, lng) :: path
+    val values = path.map(ll => {
+      val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
+      //TODO gridify
+      //sdem.grid(u.N, u.E.toFloat)
+    })
     sender ! path.map(ll => (ll._1 +.02f * math.random.toFloat - .01f) -> (ll._2 +.02f * math.random.toFloat - .01f))
   }
 }

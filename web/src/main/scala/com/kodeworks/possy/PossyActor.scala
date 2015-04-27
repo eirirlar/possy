@@ -5,20 +5,18 @@ import java.nio.file.DirectoryStream.Filter
 import java.nio.file.{Files, Path, Paths}
 
 import akka.actor.Actor
+import akka.pattern.pipe
 import argonaut.Argonaut._
+import com.kodeworks.possy.Model._
 import com.kodeworks.possy.PossyActor._
-import geokonvert.datums.{DatumUtils, DatumProvider}
+import geokonvert.datums.DatumProvider
 import geokonvert.scala.Geokonvert
 import org.slf4j.LoggerFactory
 
-import scala.None
 import scala.concurrent.Future
-import scala.io.{Codec, Source}
-import akka.pattern.pipe
-import Model._
 
 class PossyActor(demPath: String) extends Actor {
-  var dems: Map[(Float, Float), Dem] = Map()
+  var dems: Map[(Float, Float), SimpleDem] = Map()
 
   implicit val ec = context.dispatcher
 
@@ -32,7 +30,7 @@ class PossyActor(demPath: String) extends Actor {
           val file: File = path.toFile
           log.debug("Parsing {}", file.getName)
           val start = System.currentTimeMillis
-          val p = DemStreamParser.parseDem(file.getCanonicalPath)
+          val p = DemStreamParser.parseSimpleDem(file.getCanonicalPath)
           val end = System.currentTimeMillis
           log.debug(s"Parsed  ${file.getName} in ${(end - start) / 1000L} seconds")
           p
@@ -50,7 +48,7 @@ class PossyActor(demPath: String) extends Actor {
     }).asScala.toList
   }
 
-  def getClosestDem(lat: Float, lng: Float): Option[Dem] = {
+  def getClosestDem(lat: Float, lng: Float): Option[SimpleDem] = {
     if (dems.nonEmpty) {
       val u = Geokonvert.transformToUTM(lat, lng, DatumProvider.WGS84, true)
       val s = dems.keys.toList.sortBy(k => distancePow(k._1, k._2, u.E.toFloat, u.N.toFloat))
@@ -61,9 +59,9 @@ class PossyActor(demPath: String) extends Actor {
   override def receive = {
     case LatLng(lat, lng) => {
       getClosestDem(lat, lng) match {
-        case Some(Dem(a, _)) => {
-          val ne = Geokonvert.transformFromUTM(a.northingOfNE, a.eastingOfNE, 33, DatumProvider.WGS84)
-          val sw = Geokonvert.transformFromUTM(a.northingOfSE, a.eastingOfNW, 33, DatumProvider.WGS84)
+        case Some(s:SimpleDem) => {
+          val ne = Geokonvert.transformFromUTM(s.northingOfNE, s.eastingOfNE, 33, DatumProvider.WGS84)
+          val sw = Geokonvert.transformFromUTM(s.northingOfSW, s.eastingOfSW, 33, DatumProvider.WGS84)
           sender ! ElevationModel(sw.getX.toFloat, sw.getY.toFloat, ne.getX.toFloat, ne.getY.toFloat)
         }
         case _ => sender ! ElevationModel(lat - 5f, lng - 5f, lat + 5f, lng + 5f)
@@ -74,11 +72,11 @@ class PossyActor(demPath: String) extends Actor {
       sender ! getClosestDem(lat, lng)
     }
 
-    case dems: List[Dem] => {
+    case dems: List[SimpleDem] => {
       this.dems = dems.map(dem => {
-        log.debug(s"${dem.typeA.name}\neastingOfNE ${dem.typeA.eastingOfNE}\neastingOfNW ${dem.typeA.eastingOfNW}\neastingOfSE ${dem.typeA.eastingOfSE}\neastingOfSW ${dem.typeA.eastingOfSW}\n" +
-          s"northingOfNE ${dem.typeA.northingOfNE}\nnorthingOfNW ${dem.typeA.northingOfNW}\nnorthingOfSE ${dem.typeA.northingOfSE}\nnorthingOfSW ${dem.typeA.northingOfSW}")
-        (dem.typeA.eastingOfNW + (dem.typeA.eastingOfNE - dem.typeA.eastingOfNW) / 2f, dem.typeA.northingOfSE + (dem.typeA.northingOfNE - dem.typeA.northingOfSE) / 2f) -> dem
+        log.debug(s"${dem.name}\neastingOfNE ${dem.eastingOfNE}\neastingOfSW ${dem.eastingOfSW}\n" +
+          s"northingOfNE ${dem.northingOfNE}\nnorthingOfSW ${dem.northingOfSW}")
+        (dem.eastingOfSW + (dem.eastingOfNE - dem.eastingOfSW) / 2f, dem.northingOfSW + (dem.northingOfNE - dem.northingOfSW) / 2f) -> dem
       }).toMap
       log.debug("Got list of dems")
     }
