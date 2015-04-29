@@ -7,8 +7,10 @@ import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ListBuffer
 
 object MatrixPossy {
+  val maxAllowedMovement = 10
+
   //TODO support dynamic version, same graph but with nodes removed in beginning or added in end
-  def calculatePath(grid: DenseMatrix[Short], values: List[Short]): List[(Int, Int)] = {
+  def calculatePath(grid: DenseMatrix[Short], values: List[Short], allowedMovement:Int = maxAllowedMovement): List[(Int, Int)] = {
     val start = 0xffff0000
     val end = 0x0000ffff
     val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
@@ -18,15 +20,20 @@ object MatrixPossy {
     var i = 1
     while (i < values.size) {
       val value = values(i)
+      //TODO listbuilder instead
       val valueMappedToGridIndices: List[Int] = discover(grid, value).toList
+      //append built list after while loop j
       valueMappedToGridIndicesList.append(valueMappedToGridIndices)
 
       var j = 0
       while (j < valueMappedToGridIndicesPrev.size) {
         val gridIndexPrev: Int = valueMappedToGridIndicesPrev(j)
+        //TODO discover here instead, append to valueMappedToGridIndices
+        // slice around gridIndexPrev allowedMovement size
         val distanceList = ListBuffer[(Double, Int)]()
 
         var k = 0
+        //TODO k should iterate through slice around gridIndexPrev instead
         while (k < valueMappedToGridIndices.size) {
           val gridIndex: Int = valueMappedToGridIndices(k)
           //TODO memo distances?

@@ -26,11 +26,15 @@ class TestPossy {
     println("matrixValues\n" + matrixValues)
     val g = matrixGrid
     val v = matrixValues
-    val start = System.nanoTime
-    val calculatedPath = MatrixPossy.calculatePath(g, v)
-    val end = System.nanoTime
-    println((end - start) + " nanoseconds")
-    println("calcPath\n" + calculatedPath)
+    val s1 = System.nanoTime
+    val c1 = MatrixPossy.calculatePath(g, v)
+    println((System.nanoTime - s1) + " nanoseconds")
+    println("calcPath\n" + c1)
+
+    val s2 = System.nanoTime
+    val c2 = MatrixPossy.calculatePath(g, v, 1)
+    println((System.nanoTime - s2) + " nanoseconds")
+    println("calcPath\n" + c2)
   }
 
   @Test
