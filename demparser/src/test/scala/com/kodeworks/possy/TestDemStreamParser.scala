@@ -15,4 +15,11 @@ class TestDemStreamParser {
     val end = System.currentTimeMillis
     println(s"time ${end - start} millis")
   }
+
+  @Test
+  def testGridParserWriter {
+    val start = System.currentTimeMillis()
+    DemStreamParser.parseWriteGrid("C:/dev/src/data/dem/7002_2_10m_z33.dem", "C:/dev/src/data/dem/7002_2_10m_z33.compact.dem")
+    println(s"time ${System.currentTimeMillis() - start} millis")
+  }
 }

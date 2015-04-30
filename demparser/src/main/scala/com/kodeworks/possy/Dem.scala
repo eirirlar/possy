@@ -8,7 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 case class Dem(
-                typeA: RecordTypeA,
+                typeA: RecordTypeA, //TODO vector -> array
                 typeBs: Vector[RecordTypeBHead]
                 )
 

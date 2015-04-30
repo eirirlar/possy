@@ -3,9 +3,12 @@ package com.kodeworks.possy
 import java.nio.channels.AsynchronousFileChannel
 import java.nio.file.{Paths, StandardOpenOption}
 
+import org.omg.CORBA.MARSHAL
 import org.slf4j.LoggerFactory
+import scodec.bits.ByteVector
 
 import scala.io.Codec
+import scalaz.concurrent.Task
 import scalaz.stream._
 import scalaz.stream.nio.file
 
@@ -27,12 +30,33 @@ object DemStreamParser {
       .runLast.run.get
   }
 
-  def parseSimpleDem(path: String): SimpleDem = {
+  def recordParser(path: String): Process[Task, Record] = {
     val p = new DemParser
     file.textR(AsynchronousFileChannel.open(Paths.get(path), StandardOpenOption.READ))(Codec.ISO8859)
       .map(p.parse(p.record, _).get)
+  }
+
+  def parseSimpleDem(path: String): SimpleDem =
+    recordParser(path)
       .pipe(process1.fold(new SimpleDemBuilder())(_(_)))
       .map(_.build)
       .runLast.run.get
-  }
+
+  def gridParserWriter(fromPath: String, toPath: String): Process[Task, Unit] =
+    recordParser(fromPath).collect {
+      case h: RecordTypeBHead => h.elevations.toArray
+      case t: RecordTypeBTail => t.elevations.toArray
+    }.map(as => {
+      val ba = as.flatMap(x => {
+        val xs = Array((x & 0xff).asInstanceOf[Byte], ((x >> 8) & 0xff).asInstanceOf[Byte])
+        xs
+      })
+      ByteVector.view(ba)
+    })
+      .to(io.fileChunkW(toPath))
+
+  def parseWriteGrid(fromPath: String, toPath: String) =
+    gridParserWriter(fromPath, toPath)
+      .run.run
+
 }

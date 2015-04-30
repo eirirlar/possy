@@ -4,38 +4,47 @@ import breeze.linalg.DenseMatrix
 import com.kodeworks.possy.Dijkstra._
 
 import scala.collection.immutable.IndexedSeq
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object MatrixPossy {
   val maxAllowedMovement = 10
 
   //TODO support dynamic version, same graph but with nodes removed in beginning or added in end
-  def calculatePath(grid: DenseMatrix[Short], values: List[Short], allowedMovement:Int = maxAllowedMovement): List[(Int, Int)] = {
+  def calculatePath(grid: DenseMatrix[Short], values: List[Short], allowedMovement: Int = maxAllowedMovement): List[(Int, Int)] = {
     val start = 0xffff0000
     val end = 0x0000ffff
     val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
-    var valueMappedToGridIndicesPrev: List[Int] = discover(grid, values(0)).toList
-    val valueMappedToGridIndicesList = ListBuffer[List[Int]](valueMappedToGridIndicesPrev)
+    var valueMappedToGridIndicesPrev: IndexedSeq[Int] = discover(grid, values(0))
+    val valueMappedToGridIndicesList = ListBuffer[IndexedSeq[Int]](valueMappedToGridIndicesPrev)
 
     var i = 1
     while (i < values.size) {
       val value = values(i)
+      val valueMappedToGridIndices = Set.newBuilder[Int]
+
       //TODO listbuilder instead
-      val valueMappedToGridIndices: List[Int] = discover(grid, value).toList
+      //val valueMappedToGridIndices: List[Int] = discover(grid, value).toList
       //append built list after while loop j
-      valueMappedToGridIndicesList.append(valueMappedToGridIndices)
+      //valueMappedToGridIndicesList.append(valueMappedToGridIndices)
 
       var j = 0
       while (j < valueMappedToGridIndicesPrev.size) {
         val gridIndexPrev: Int = valueMappedToGridIndicesPrev(j)
+        val rc: (Int, Int) = grid.rowColumnFromLinearIndex(gridIndexPrev)
+        val aroundGridIndexPrev: DenseMatrix[Short] = grid(
+          rc._1 - allowedMovement max 0 to (rc._1 + allowedMovement min grid.rows - 1),
+          rc._2 - allowedMovement max 0 to (rc._2 + allowedMovement min grid.cols - 1))
+        val valueMappedToGridIndicesAroundGridIndexPrev: IndexedSeq[Int] = discover(aroundGridIndexPrev, value)
         //TODO discover here instead, append to valueMappedToGridIndices
+        valueMappedToGridIndices ++= valueMappedToGridIndicesAroundGridIndexPrev
         // slice around gridIndexPrev allowedMovement size
         val distanceList = ListBuffer[(Double, Int)]()
 
         var k = 0
         //TODO k should iterate through slice around gridIndexPrev instead
-        while (k < valueMappedToGridIndices.size) {
-          val gridIndex: Int = valueMappedToGridIndices(k)
+        while (k < valueMappedToGridIndicesAroundGridIndexPrev.size) {
+          val gridIndex: Int = valueMappedToGridIndicesAroundGridIndexPrev(k)
           //TODO memo distances?
           val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
           //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
@@ -45,7 +54,8 @@ object MatrixPossy {
         graph.put(combine(i - 1, j), distanceList.toList)
         j += 1
       }
-      valueMappedToGridIndicesPrev = valueMappedToGridIndices
+      valueMappedToGridIndicesPrev = valueMappedToGridIndices.result.toIndexedSeq
+      valueMappedToGridIndices.clear
       i += 1
     }
 
