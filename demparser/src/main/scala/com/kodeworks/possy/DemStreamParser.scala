@@ -46,17 +46,20 @@ object DemStreamParser {
     recordParser(fromPath).collect {
       case h: RecordTypeBHead => h.elevations.toArray
       case t: RecordTypeBTail => t.elevations.toArray
-    }.map(as => {
-      val ba = as.flatMap(x => {
-        val xs = Array((x & 0xff).asInstanceOf[Byte], ((x >> 8) & 0xff).asInstanceOf[Byte])
-        xs
-      })
-      ByteVector.view(ba)
-    })
+    }.map(_.map(ByteVector.fromShort(_)).reduce(_ ++ _))
       .to(io.fileChunkW(toPath))
 
   def parseWriteGrid(fromPath: String, toPath: String) =
-    gridParserWriter(fromPath, toPath)
-      .run.run
+    gridParserWriter(fromPath, toPath).run.run
+
+  //too slow
+  def gridReader(path: String): Process[Task, Short] =
+    Process.constant(2).toSource
+      .through(io.fileChunkR(path))
+      .map(_.toShort())
+
+
+  def readGrid(path: String): Array[Short] =
+    gridReader(path).runLog.run.toArray
 
 }
