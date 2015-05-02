@@ -7,7 +7,7 @@ import org.omg.CORBA.MARSHAL
 import org.slf4j.LoggerFactory
 import scodec.bits.ByteVector
 
-import scala.io.Codec
+import scala.io.{Source, Codec}
 import scalaz.concurrent.Task
 import scalaz.stream._
 import scalaz.stream.nio.file
@@ -54,12 +54,20 @@ object DemStreamParser {
 
   //too slow
   def gridReader(path: String): Process[Task, Short] =
-    Process.constant(2).toSource
+    Process.constant(4096).toSource
       .through(io.fileChunkR(path))
-      .map(_.toShort())
+      .repartition2(bv => {
+      if (2 > bv.size) None -> None
+      else if (2 == bv.size) Some(bv.take(2)) -> None
+      else Some(bv.take(2)) -> Some(bv.drop(2))
+    })
+      .map(b => {
+      val s = b.toShort()
+      s
+    })
 
 
-  def readGrid(path: String): Array[Short] =
+  def readGrid(path: String): Array[Short] = {
     gridReader(path).runLog.run.toArray
-
+  }
 }

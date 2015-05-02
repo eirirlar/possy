@@ -5,13 +5,16 @@ import org.junit.Test
 class TestDemStreamParser {
   @Test
   def testDemStreamParser {
-    DemStreamParser.parseDem("C:/dev/src/data/dem/7002_2_10m_z33.dem")
+    val start = System.currentTimeMillis
+    val dem = DemStreamParser.parseDem("C:/dev/src/data/dem/7002_2_10m_z33.dem")
+    val end = System.currentTimeMillis
+    println(s"time ${end - start} millis")
   }
 
   @Test
   def testSimpleDemStreamParser {
     val start = System.currentTimeMillis
-    DemStreamParser.parseSimpleDem("C:/dev/src/data/dem/7002_2_10m_z33.dem")
+    val dem = DemStreamParser.parseSimpleDem("C:/dev/src/data/dem/7002_2_10m_z33.dem")
     val end = System.currentTimeMillis
     println(s"time ${end - start} millis")
   }
@@ -19,11 +22,11 @@ class TestDemStreamParser {
   @Test
   def testGridParserWriter {
 //    val start = System.currentTimeMillis()
-//    DemStreamParser.parseWriteGrid("C:/dev/src/data/dem/7002_2_10m_z33.dem", "C:/dev/src/data/dem/7002_2_10m_z33.compact.dem")
+//    DemStreamParser.parseWriteGrid("C:/dev/src/data/dem/7002_2_10m_z33.dem", "C:/dev/src/data/dem/7002_2_10m_z33.dem.compact")
 //    println(s"time ${System.currentTimeMillis() - start} millis")
 
     val s2 = System.currentTimeMillis()
-    val grid = DemStreamParser.readGrid("C:/dev/src/data/dem/7002_2_10m_z33.compact.dem")
+    val grid = DemStreamParser.readGrid("C:/dev/src/data/dem/7002_2_10m_z33.dem.compact")
     println(s"time ${System.currentTimeMillis() - s2} millis")
   }
 }

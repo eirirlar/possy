@@ -53,15 +53,15 @@ class PathCalculator extends Actor {
     path = (lat, lng) :: path
     val elevs = elevations
     val start = System.nanoTime()
-    val calcedPath: List[(Int, Int)] = MatrixPossy.calculatePath(dem.grid, elevs)
+    val calcedPath: List[(Int, Int)] = MatrixPossy.calculatePath(dem.grid, elevs, 10)
+    val end = System.nanoTime()
+    val time = (end - start) / 1000000L
     val llCalcedPath: List[(Float, Float)] = calcedPath.map(gc => {
       val n = gc._1 * dem.resolutionY + dem.northingOfSW
       val e = gc._2 * dem.resolutionX + dem.eastingOfSW
       val ll = Geokonvert.transformFromUTM(n, e, 33, DatumProvider.WGS84)
       (ll.x.toFloat, ll.y.toFloat)
     })
-    val end = System.nanoTime()
-    val time = (end - start) / 1000000L
     time -> llCalcedPath
   }
 

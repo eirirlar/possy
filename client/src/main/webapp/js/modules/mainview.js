@@ -121,27 +121,30 @@ function(app, gmap) {
         loadClosestElevationIfChanged: function() {
             if(this.pathId) return;
             var center = this.map.getCenter();
-            if(this.rectangle && this.rectangle.getBounds().contains(center)) return;
+            if(this.polygon && google.maps.geometry.poly.containsLocation(center, this.polygon)) return;
             $.ajax(app.root + 'loadClosestElevationIfChanged', {
                 method: 'POST',
                 data: JSON.stringify({lat: center.lat(), lng: center.lng()})
             }).then(_.bind(function(s) {
-                var bounds = new google.maps.LatLngBounds(
-                    new google.maps.LatLng(s.lat0, s.lng0),
-                    new google.maps.LatLng(s.lat1, s.lng1));
-                if(this.rectangle) {
-                    if(this.rectangle.getBounds().equals(bounds)) return;
-                    this.rectangle.setMap(null);
-                    delete this.rectangle;
+                var paths = [
+                    new google.maps.LatLng(s.nw[0], s.nw[1]),
+                    new google.maps.LatLng(s.ne[0], s.ne[1]),
+                    new google.maps.LatLng(s.se[0], s.se[1]),
+                    new google.maps.LatLng(s.sw[0], s.sw[1])
+                ];
+                if(this.polygon) {
+                    if(this.polygon.getPaths().equals(paths)) return;
+                    this.polygon.setMap(null);
+                    delete this.polygon;
                 }
-                this.rectangle = new google.maps.Rectangle({
+                this.polygon = new google.maps.Polygon({
                     strokeColor: '#FF0000',
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
                     fillColor: '#FF0000',
                     fillOpacity: 0.35,
                     map: this.map,
-                    bounds: bounds,
+                    paths: paths,
                     clickable: false
                 });
 
@@ -168,14 +171,14 @@ function(app, gmap) {
 
         checkPolyline: function() {
             if(this.polylineInsideRectangle()) return true;
-            alert('Some points of polyline is outside rectangle');
+            alert('Some points of polyline is outside p');
         },
 
         polylineInsideRectangle: function(polyline) {
             polyline = polyline ? polyline : this.polyline;
-            if(!this.rectangle || !polyline) return;
+            if(!this.polygon || !polyline) return;
             return _.all(polyline.getPath().getArray(), function(ll) {
-                return this.rectangle.getBounds().contains(ll);
+                return google.maps.geometry.poly.containsLocation(ll, this.polygon);
             }, this);
         },
 

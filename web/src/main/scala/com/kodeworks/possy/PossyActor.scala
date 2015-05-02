@@ -1,5 +1,6 @@
 package com.kodeworks.possy
 
+import java.awt.geom.Point2D
 import java.io.File
 import java.nio.file.DirectoryStream.Filter
 import java.nio.file.{Files, Path, Paths}
@@ -59,12 +60,20 @@ class PossyActor(demPath: String) extends Actor {
   override def receive = {
     case LatLng(lat, lng) => {
       getClosestDem(lat, lng) match {
-        case Some(s:SimpleDem) => {
+        case Some(s: SimpleDem) => {
+          val nw = Geokonvert.transformFromUTM(s.northingOfNE, s.eastingOfSW, 33, DatumProvider.WGS84)
           val ne = Geokonvert.transformFromUTM(s.northingOfNE, s.eastingOfNE, 33, DatumProvider.WGS84)
           val sw = Geokonvert.transformFromUTM(s.northingOfSW, s.eastingOfSW, 33, DatumProvider.WGS84)
-          sender ! ElevationModel(sw.getX.toFloat, sw.getY.toFloat, ne.getX.toFloat, ne.getY.toFloat)
+          val se = Geokonvert.transformFromUTM(s.northingOfSW, s.eastingOfNE, 33, DatumProvider.WGS84)
+          sender ! ElevationModel(
+            p2dToDouble(nw),
+            p2dToDouble(ne),
+            p2dToDouble(sw),
+            p2dToDouble(se))
         }
-        case _ => sender ! ElevationModel(lat - 5f, lng - 5f, lat + 5f, lng + 5f)
+        case _ => {
+//          sender ! ElevationModel(lat - 5f, lng - 5f, lat + 5f, lng + 5f)
+        }
       }
     }
 
@@ -88,19 +97,21 @@ object PossyActor {
 
 
   case class ElevationModel(
-                             lat0: Float,
-                             lng0: Float,
-                             lat1: Float,
-                             lng1: Float
-                             )
+                             nw: (Float, Float),
+                             ne: (Float, Float),
+                             sw: (Float, Float),
+                             se: (Float, Float))
 
 
   implicit def ElevationModelCodec =
-    casecodec4(ElevationModel.apply, ElevationModel.unapply)("lat0", "lng0", "lat1", "lng1")
+    casecodec4(ElevationModel.apply, ElevationModel.unapply)("nw", "ne", "sw", "se")
 
   def distancePow(x0: Float, y0: Float, x1: Float, y1: Float): Float = {
     val x = x1 - x0
     val y = y1 - y0
     x * x + y * y
   }
+
+  def p2dToDouble(p2d: Point2D.Double): (Float, Float) =
+    (p2d.x.toFloat, p2d.y.toFloat)
 }
