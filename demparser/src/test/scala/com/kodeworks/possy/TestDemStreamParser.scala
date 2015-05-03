@@ -27,6 +27,7 @@ class TestDemStreamParser {
 
     val s2 = System.currentTimeMillis()
     val grid = DemStreamParser.readGrid("C:/dev/src/data/dem/7002_2_10m_z33.dem.compact")
+    println(grid.size)
     println(s"time ${System.currentTimeMillis() - s2} millis")
   }
 }

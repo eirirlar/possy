@@ -133,7 +133,7 @@ function(app, gmap) {
                     new google.maps.LatLng(s.sw[0], s.sw[1])
                 ];
                 if(this.polygon) {
-                    if(this.polygon.getPaths().equals(paths)) return;
+                    if(this.polylineInsidePolygon(paths)) return;
                     this.polygon.setMap(null);
                     delete this.polygon;
                 }
@@ -170,14 +170,16 @@ function(app, gmap) {
         },
 
         checkPolyline: function() {
-            if(this.polylineInsideRectangle()) return true;
+            if(this.polylineInsidePolygon()) return true;
             alert('Some points of polyline is outside p');
         },
 
-        polylineInsideRectangle: function(polyline) {
+        polylineInsidePolygon: function(polyline) {
             polyline = polyline ? polyline : this.polyline;
             if(!this.polygon || !polyline) return;
-            return _.all(polyline.getPath().getArray(), function(ll) {
+            polyline = polyline.getPath ? polyline.getPath() : polyline;
+            polyline = polyline.getArray ? polyline.getArray() : polyline;
+            return _.all(polyline, function(ll) {
                 return google.maps.geometry.poly.containsLocation(ll, this.polygon);
             }, this);
         },
@@ -192,8 +194,14 @@ function(app, gmap) {
         },
 
         updatePlotted: function(array) {
+            var prev;
             this.$el.find('.plotted').html(_.map(array, function(ll) {
-                return '<li>' + ll.lat().toFixed(6) + ' ' + ll.lng().toFixed(6) + '</li>';
+                var dist = 0;
+                if(prev) {
+                    dist = google.maps.geometry.spherical.computeDistanceBetween(prev, ll);
+                }
+                prev = ll;
+                return '<li>' + ll.lat().toFixed(6) + ' ' + ll.lng().toFixed(6) + ' ' + dist.toFixed(0) + '</li>';
             }, this));
         },
 
@@ -285,7 +293,7 @@ function(app, gmap) {
                 method: 'POST',
                 data: JSON.stringify({lat: e.latLng.lat(), lng: e.latLng.lng()})
             }).then(_.bind(function(elevation) {
-                this.$el.find('.checked_elev').html(e.latLng.lat() + ' ' + e.latLng.lng() + ' ' + elevation);
+                this.$el.find('.checked_elev').html(e.latLng.lat().toFixed(6) + ' ' + e.latLng.lng().toFixed(6) + ' ' + elevation.toFixed(1));
             }, this));
         }
     });

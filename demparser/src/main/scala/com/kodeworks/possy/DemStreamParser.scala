@@ -7,6 +7,7 @@ import org.omg.CORBA.MARSHAL
 import org.slf4j.LoggerFactory
 import scodec.bits.ByteVector
 
+import scala.collection.mutable
 import scala.io.{Source, Codec}
 import scalaz.concurrent.Task
 import scalaz.stream._
@@ -52,22 +53,16 @@ object DemStreamParser {
   def parseWriteGrid(fromPath: String, toPath: String) =
     gridParserWriter(fromPath, toPath).run.run
 
-  //too slow
-  def gridReader(path: String): Process[Task, Short] =
+  def gridReader(path: String) =
     Process.constant(4096).toSource
       .through(io.fileChunkR(path))
-      .repartition2(bv => {
-      if (2 > bv.size) None -> None
-      else if (2 == bv.size) Some(bv.take(2)) -> None
-      else Some(bv.take(2)) -> Some(bv.drop(2))
-    })
-      .map(b => {
-      val s = b.toShort()
-      s
+      .map(_.grouped(2).map(_.toShort()))
+      .scan(mutable.ArrayBuilder.make[Short]())((b, s) => {
+      b ++= s
+      b
     })
 
-
-  def readGrid(path: String): Array[Short] = {
-    gridReader(path).runLog.run.toArray
+  def readGrid(path: String) = {
+    gridReader(path).runLast.run.get.result()
   }
 }

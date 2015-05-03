@@ -26,7 +26,7 @@ class PathCalculator extends Actor {
       case sender => sender ! calcPath(lat, lng)
     }
     case GetElevation(l@LatLng(lat, lng)) => checkNoDem(l) onSuccess {
-      case sender => sender ! elevation(lat, lng).toFloat / dem.resolutionZ
+      case sender => sender ! elevation(lat, lng).toFloat * dem.resolutionZ
     }
     case ResetCalc => {
       log.debug("reset calc")

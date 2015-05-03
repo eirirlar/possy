@@ -48,10 +48,14 @@ object MatrixPossy {
           //TODO memo distances?
           val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
           //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
-          distanceList.append((gridIndexDistance.toDouble, combine(i, k)))
+          val c = combine(i, k)
+          if (c == 0 || c == end || c == start) throw new AssertionError("c == 0 || c == end || c == start")
+          distanceList.append((gridIndexDistance.toDouble, c))
           k += 1
         }
-        graph.put(combine(i - 1, j), distanceList.toList)
+        val c = combine(i - 1, j)
+        if (c == end || c == start) throw new AssertionError(" c == end || c == start")
+        graph.put(c, distanceList.toList)
         j += 1
       }
       valueMappedToGridIndicesPrev = valueMappedToGridIndices.result.toIndexedSeq
@@ -62,7 +66,9 @@ object MatrixPossy {
     i = 0
     var distanceList = ListBuffer[(Double, Int)]()
     while (i < valueMappedToGridIndicesList(0).size) {
-      distanceList.append((0d, combine(0, i)))
+      val c = combine(0, i)
+      if (c == end || c == start) throw new AssertionError("c == end || c == start")
+      distanceList.append((0d, c))
       i += 1
     }
     graph.put(start, distanceList.toList)
@@ -70,7 +76,9 @@ object MatrixPossy {
     i = 0
     while (i < valueMappedToGridIndicesList(valueMappedToGridIndicesList.size - 1).size) {
       val gridIndex: Int = valueMappedToGridIndicesList(valueMappedToGridIndicesList.size - 1)(i)
-      graph.put(combine(valueMappedToGridIndicesList.size - 1, i), List((0d, end)))
+      val c = combine(valueMappedToGridIndicesList.size - 1, i)
+      if ((valueMappedToGridIndicesList.size != 1 && c == 0) || c == end || c == start) throw new AssertionError("c == 0 || c == end || c == start")
+      graph.put(c, List((0d, end)))
       i += 1
     }
 
