@@ -23,19 +23,10 @@ object MatrixPossy {
       val value = values(i)
       val valueMappedToGridIndices = Set.newBuilder[Int]
 
-      //TODO listbuilder instead
-      //val valueMappedToGridIndices: List[Int] = discover(grid, value).toList
-      //append built list after while loop j
-      //valueMappedToGridIndicesList.append(valueMappedToGridIndices)
-
       var j = 0
       while (j < valueMappedToGridIndicesPrev.size) {
         val gridIndexPrev: Int = valueMappedToGridIndicesPrev(j)
-        val rc: (Int, Int) = grid.rowColumnFromLinearIndex(gridIndexPrev)
-        val aroundGridIndexPrev: DenseMatrix[Short] = grid(
-          rc._1 - allowedMovement max 0 to (rc._1 + allowedMovement min grid.rows - 1),
-          rc._2 - allowedMovement max 0 to (rc._2 + allowedMovement min grid.cols - 1))
-        val valueMappedToGridIndicesAroundGridIndexPrev: IndexedSeq[Int] = discover(aroundGridIndexPrev, value)
+        val valueMappedToGridIndicesAroundGridIndexPrev: IndexedSeq[Int] = discoverNear(grid, value, gridIndexPrev, allowedMovement)
         //TODO discover here instead, append to valueMappedToGridIndices
         valueMappedToGridIndices ++= valueMappedToGridIndicesAroundGridIndexPrev
         // slice around gridIndexPrev allowedMovement size
@@ -48,18 +39,18 @@ object MatrixPossy {
           //TODO memo distances?
           val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
           //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
+          //TODO something fishy - i and k here, i-1 and j in outer loop...
           val c = combine(i, k)
-          if (c == 0 || c == end || c == start) throw new AssertionError("c == 0 || c == end || c == start")
           distanceList.append((gridIndexDistance.toDouble, c))
           k += 1
         }
         val c = combine(i - 1, j)
-        if (c == end || c == start) throw new AssertionError(" c == end || c == start")
         graph.put(c, distanceList.toList)
         j += 1
       }
       valueMappedToGridIndicesPrev = valueMappedToGridIndices.result.toIndexedSeq
       valueMappedToGridIndices.clear
+      valueMappedToGridIndicesList.append(valueMappedToGridIndicesPrev)
       i += 1
     }
 
@@ -67,7 +58,6 @@ object MatrixPossy {
     var distanceList = ListBuffer[(Double, Int)]()
     while (i < valueMappedToGridIndicesList(0).size) {
       val c = combine(0, i)
-      if (c == end || c == start) throw new AssertionError("c == end || c == start")
       distanceList.append((0d, c))
       i += 1
     }
@@ -77,7 +67,6 @@ object MatrixPossy {
     while (i < valueMappedToGridIndicesList(valueMappedToGridIndicesList.size - 1).size) {
       val gridIndex: Int = valueMappedToGridIndicesList(valueMappedToGridIndicesList.size - 1)(i)
       val c = combine(valueMappedToGridIndicesList.size - 1, i)
-      if ((valueMappedToGridIndicesList.size != 1 && c == 0) || c == end || c == start) throw new AssertionError("c == 0 || c == end || c == start")
       graph.put(c, List((0d, end)))
       i += 1
     }
@@ -97,6 +86,20 @@ object MatrixPossy {
     grid.findAll(_ == target).map(rc => grid.linearIndex(rc._1, rc._2))
   }
 
+  def discoverNear(grid: DenseMatrix[Short], target: Short, near: Int, allowedMovement: Int): IndexedSeq[Int] = {
+    val nearRC: (Int, Int) = grid.rowColumnFromLinearIndex(near)
+    val minRow = nearRC._1 - allowedMovement max 0
+    val maxRow = nearRC._1 + allowedMovement min grid.rows - 1
+    val minCol = nearRC._2 - allowedMovement max 0
+    val maxCol = nearRC._2 + allowedMovement min grid.cols - 1
+    val nearby: DenseMatrix[Short] = grid(
+      minRow to maxRow,
+      minCol to maxCol)
+    nearby.findAll(_ == target).map(rc =>
+      grid.linearIndex(minRow + rc._1, minCol + rc._2)
+    )
+  }
+
   def distance(grid: DenseMatrix[Short], fromIndex: Int, toIndex: Int): Int = {
     val xy0 = grid.rowColumnFromLinearIndex(fromIndex)
     val xy1 = grid.rowColumnFromLinearIndex(toIndex)
@@ -106,7 +109,8 @@ object MatrixPossy {
   }
 
   def combine(i: Int, j: Int): Int = {
-    i + (j << 16)
+    val c = i + (j << 16)
+    c
   }
 
   def split(k: Int): (Int, Int) = {

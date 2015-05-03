@@ -8,19 +8,21 @@ class TestMatrixPossy {
   @Test
   def testMatrixPossy {
     val s1 = System.currentTimeMillis()
-    val dem = DemStreamParser.parseSimpleDem("C:/dev/src/data/dem/7002_2_10m_z33.dem")
+    val grid = new DenseMatrix(5041, 5041, DemStreamParser.readGrid("C:/dev/src/data/dem/5041.compact"))
     println("parse: " + (System.currentTimeMillis() - s1) + " millis")
-    val vs = values(dem.grid, path)
-    println(vs)
+    val vs = values(grid, path)
+    println("    path : " + path)
+    println("pathVals : " + vs)
     val s2 = System.currentTimeMillis()
-    MatrixPossy.calculatePath(dem.grid, vs)
-    println("calc path: " + (System.currentTimeMillis() - s2) + " millis")
+    val calcPath: List[(Int, Int)] = MatrixPossy.calculatePath(grid, vs)
+    println("calcPath : " + calcPath)
+
   }
 }
 
 object TestMatrixPossy {
   val path = List(
-    (0, 0), (1, 1) //, (2, 1), (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5)
+    (1, 1), (2, 1) //, (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5)
   )
 
   def values(grid: DenseMatrix[Short], path: List[(Int, Int)]): List[Short] =
