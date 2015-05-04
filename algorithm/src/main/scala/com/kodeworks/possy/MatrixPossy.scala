@@ -4,7 +4,6 @@ import breeze.linalg.DenseMatrix
 import com.kodeworks.possy.Dijkstra._
 
 import scala.collection.immutable.IndexedSeq
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object MatrixPossy {
@@ -27,18 +26,14 @@ object MatrixPossy {
       while (j < valueMappedToGridIndicesPrev.size) {
         val gridIndexPrev: Int = valueMappedToGridIndicesPrev(j)
         val valueMappedToGridIndicesAroundGridIndexPrev: IndexedSeq[Int] = discoverNear(grid, value, gridIndexPrev, allowedMovement)
-        //TODO discover here instead, append to valueMappedToGridIndices
-        // slice around gridIndexPrev allowedMovement size
         val distanceList = ListBuffer[(Double, Int)]()
 
         var k = 0
-        //TODO k should iterate through slice around gridIndexPrev instead
         while (k < valueMappedToGridIndicesAroundGridIndexPrev.size) {
           val gridIndex: Int = valueMappedToGridIndicesAroundGridIndexPrev(k)
           //TODO memo distances?
           val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
-          //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
-          //TODO something fishy - i and k here, i-1 and j in outer loop...
+
           val c = combine(i, valueMappedToGridIndices.size + k)
           distanceList.append((gridIndexDistance.toDouble, c))
           k += 1
@@ -108,6 +103,7 @@ object MatrixPossy {
     x * x + y * y
   }
 
+  //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
   def combine(i: Int, j: Int): Int = {
     val c = i + (j << 16)
     c
@@ -116,9 +112,4 @@ object MatrixPossy {
   def split(k: Int): (Int, Int) = {
     (k & 0x0000ffff, (k >> 16) & 0x0000ffff)
   }
-
-  //
-  //  def toGridIndex(gridWidth: Int, x: Int, y: Int): Int = x * gridWidth + y
-  //
-  //  def toGridCoords(gridWidth: Int, gridIndex: Int): (Int, Int) = (gridIndex % gridWidth, gridIndex / gridWidth)
 }

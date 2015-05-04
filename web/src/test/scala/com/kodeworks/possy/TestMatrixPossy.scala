@@ -15,14 +15,14 @@ class TestMatrixPossy {
     println("pathVals : " + vs)
     val s2 = System.currentTimeMillis()
     val calcPath: List[(Int, Int)] = MatrixPossy.calculatePath(grid, vs)
-    println("calcPath : " + calcPath)
+    println("calcPath : " + calcPath + " " + (System.currentTimeMillis() - s2) + " millis")
 
   }
 }
 
 object TestMatrixPossy {
   val path = List(
-    (1, 1), (2, 1) //, (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5)
+    (1, 1), (2, 1) , (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5)
   )
 
   def values(grid: DenseMatrix[Short], path: List[(Int, Int)]): List[Short] =
