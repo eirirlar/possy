@@ -21,14 +21,13 @@ object MatrixPossy {
     var i = 1
     while (i < values.size) {
       val value = values(i)
-      val valueMappedToGridIndices = Set.newBuilder[Int]
+      val valueMappedToGridIndices = ListBuffer[Int]()
 
       var j = 0
       while (j < valueMappedToGridIndicesPrev.size) {
         val gridIndexPrev: Int = valueMappedToGridIndicesPrev(j)
         val valueMappedToGridIndicesAroundGridIndexPrev: IndexedSeq[Int] = discoverNear(grid, value, gridIndexPrev, allowedMovement)
         //TODO discover here instead, append to valueMappedToGridIndices
-        valueMappedToGridIndices ++= valueMappedToGridIndicesAroundGridIndexPrev
         // slice around gridIndexPrev allowedMovement size
         val distanceList = ListBuffer[(Double, Int)]()
 
@@ -40,10 +39,11 @@ object MatrixPossy {
           val gridIndexDistance = distance(grid, gridIndexPrev, gridIndex)
           //first 16 bits of k, then 16 bits of i, both must be positive and less than 65535 (because of start and end)
           //TODO something fishy - i and k here, i-1 and j in outer loop...
-          val c = combine(i, k)
+          val c = combine(i, valueMappedToGridIndices.size + k)
           distanceList.append((gridIndexDistance.toDouble, c))
           k += 1
         }
+        valueMappedToGridIndices ++= valueMappedToGridIndicesAroundGridIndexPrev
         val c = combine(i - 1, j)
         graph.put(c, distanceList.toList)
         j += 1
