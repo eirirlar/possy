@@ -29,7 +29,7 @@ class TestMatrixPossy {
     val s2 = System.currentTimeMillis()
     val ksp = new KShortPossy(grid)
     vs.foreach(ksp(_))
-    println("ksp targets " + ksp.targets + " targetLocations " + ksp.costOfPaths.size + " time " + (System.currentTimeMillis() - s2) + " millis")
+    println("ksp targets " + ksp.targets + " time " + (System.currentTimeMillis() - s2) + " millis")
   }
 }
 
