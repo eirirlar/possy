@@ -17,7 +17,7 @@ class TestDijkstra {
       (-2,-2) -> Nil
     )
     val start = System.currentTimeMillis()
-    val res = dijkstra[(Int, Int)](lookup, List((0d, List((-1,-1)))), (-2,-2), Set())
+    val res = shortestPath[(Int, Int)](lookup, List((0d, List((-1,-1)))), (-2,-2), Set())
     val time = System.currentTimeMillis() - start
     println("dijkstra time: " + time)
     println(res)
@@ -33,7 +33,7 @@ class TestDijkstra {
       -2 -> Nil
     )
     val start2 = System.currentTimeMillis()
-    val res2 = dijkstra[Int](lookup2, List((0d, List(-1))), -2, Set())
+    val res2 = shortestPath[Int](lookup2, List((0d, List(-1))), -2, Set())
     val time2 = System.currentTimeMillis() - start2
     println("dijkstra time: " + time2)
     println(res2)
