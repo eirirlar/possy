@@ -52,5 +52,6 @@
         <module>demparser</module>
         <module>web</module>
         <module>kshortestpaths</module>
+        <module>gao</module>
     </modules>
 </project>

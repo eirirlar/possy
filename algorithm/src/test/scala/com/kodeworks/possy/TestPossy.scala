@@ -72,6 +72,11 @@ class TestPossy {
     Assert.assertEquals((i, j), Possy.split(c))
   }
 
+  @Test
+  def testListEquals {
+    Assert.assertTrue(List(1, 2, 3) == List(1, 2, 3))
+  }
+
 }
 
 object TestPossy {
