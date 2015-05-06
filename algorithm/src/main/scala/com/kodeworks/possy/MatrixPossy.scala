@@ -69,8 +69,8 @@ object MatrixPossy {
     graph.put(end, Nil)
     val fringe = List((0d, List(start)))
 
-    val shortestPath: (Double, List[Int]) = shortestPath(graph.toMap, fringe, end, Set())
-    val shortestPathCoords = shortestPath._2.slice(1, shortestPath._2.size - 1).map(c => {
+    val sp: (Double, List[Int]) = shortestPath(graph.toMap, fringe, end, Set())
+    val shortestPathCoords = sp._2.slice(1, sp._2.size - 1).map(c => {
       val s: (Int, Int) = split(c)
       grid.rowColumnFromLinearIndex(valueMappedToGridIndicesList(s._1)(s._2))
     })

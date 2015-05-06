@@ -1,9 +1,6 @@
 package com.kodeworks.possy
 
-import junit.framework.Test
-import TestFloydWarshal._
-import org.apache.commons.graph.algorithm.path.AllPairsShortestPath
-import org.apache.commons.graph.domain.basic.DirectedGraphImpl
+import org.junit.Test
 
 class TestFloydWarshal {
 

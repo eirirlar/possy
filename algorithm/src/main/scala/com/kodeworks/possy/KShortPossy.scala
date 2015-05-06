@@ -3,14 +3,14 @@ package com.kodeworks.possy
 import breeze.linalg.DenseMatrix
 import com.kodeworks.possy.Dijkstra._
 import com.kodeworks.possy.KShortPossy._
-import MatrixPossy.{discover,discoverNear,combine,distance,split}
+import MatrixPossy.{discover, discoverNear, combine, distance, split}
 
 import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ListBuffer
 
 class KShortPossy(grid: DenseMatrix[Short]) {
   val targets = ListBuffer[Short]()
-  var lastDiscoveries:IndexedSeq[Int] = null
+  var lastDiscoveries: IndexedSeq[Int] = null
   val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
 
   def apply(target: Short) = {
@@ -62,7 +62,7 @@ class KShortPossy(grid: DenseMatrix[Short]) {
     graph.put(end, Nil)
     val fringe = List((0d, List(start)))
 
-    val shortestPath: (Double, List[Int]) = shortestPath(graph.toMap, fringe, end, Set())
+    val sp: (Double, List[Int]) = shortestPath(graph.toMap, fringe, end, Set())
     //      val shortestPathCoords = shortestPath._2.slice(1, shortestPath._2.size - 1).map(c => {
     //        val s: (Int, Int) = split(c)
     //        grid.rowColumnFromLinearIndex(valueMappedToGridIndicesList(s._1)(s._2))
