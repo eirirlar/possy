@@ -2,9 +2,6 @@ package com.kodeworks.possy
 
 import scala.collection.mutable.ArrayBuffer
 
-/**
- * Created by eirirlar on 06.05.2015.
- */
 object Gao {
 
   class Edge {
@@ -132,11 +129,11 @@ object Gao {
       outEdgesInGraph.map(_.getToNodeID)
     }
 
-    def getOutEdgesInGraph =       outEdgesInGraph
+    def getOutEdgesInGraph = outEdgesInGraph
 
-    def getInEdgesInGraph =  inEdgesInGraph
+    def getInEdgesInGraph = inEdgesInGraph
 
-    def getedgesInSPT =  edgesInSPT
+    def getedgesInSPT = edgesInSPT
 
     def getParent = parent
 
@@ -147,90 +144,34 @@ object Gao {
       else return cedge.fromNode.id
     }
 
-    /**
-     * 返回到给点节点的边
-     * @param toNodeID int
-     * @return Edge
-     */
     def getEdgeFromToNodeInSPT(toNodeID: Int): Edge = {
-      var cedge: Edge = null {
-        var i: Int = 0
-        while (i < edgesInSPT.size) {
-          {
-            cedge = edgesInSPT(i)
-            if (cedge.getToNodeID == toNodeID) {
-              return cedge
-            }
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
-      return null
+      edgesInSPT.find(_.getToNodeID == toNodeID).getOrElse(null)
     }
 
     def annnotateNode(pre: Int, parent: Int): Int = {
       this.parent = parent
       var currentPre: Int = pre
       this.pre = currentPre
-      var tNode: Node = null {
-        var i: Int = 0
-        while (i < this.edgesInSPT.size) {
-          {
-            tNode = this.edgesInSPT(i).toNode
-            currentPre += 1
-            currentPre = tNode.annnotateNode(currentPre, this.id)
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
+      edgesInSPT.foreach(e => {
+        currentPre += 1
+        currentPre = e.toNode.annnotateNode(currentPre, id)
+      })
       currentPre += 1
-      this.post = currentPre
-      return currentPre
+      post = currentPre
+      currentPre
     }
 
     def clearForNextSPT {
       edgesInSPT.clear
-      var cedge: Edge = null {
-        var i: Int = 0
-        while (i < outEdgesInGraph.size) {
-          {
-            cedge = outEdgesInGraph(i)
-            cedge.sideCost = 0
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
-      this.preEdge = null
-      this.cost = Int.MaxValue
-      this.hop = 0
+      outEdgesInGraph.foreach(_.sideCost = 0)
+      preEdge = null
+      cost = Int.MaxValue
+      hop = 0
     }
 
     def setSideCost {
-      var cedge: Edge = null {
-        var i: Int = 0
-        while (i < outEdgesInGraph.size) {
-          {
-            cedge = outEdgesInGraph(i)
-            cedge.sideCost = cedge.distance - this.cost + cedge.toNode.cost
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
+      outEdgesInGraph.foreach(e => e.sideCost = e.distance - cost + e.toNode.cost)
     }
   }
-
-}
 
 }
