@@ -220,6 +220,7 @@ object Gao {
     }
 
     def getNextPaths(topks: ArrayBuffer[Path], toID: Int): ArrayBuffer[Path] = {
+      val nexts = ArrayBuffer[Path]()
       val nodes = edges.map(_.fromNode)
       if (edges.nonEmpty) {
         nodes.append(edges.last.toNode)
@@ -227,322 +228,160 @@ object Gao {
       var next: Path = null
       if (edges.size < 1) return nexts
       var removedEdges: List[Edge] = null
-      val startIdx: Int = this.getStartIdx(topks) {
-        var i: Int = startIdx
-        while (i < nodes.size - 1) {
-          {
-            removedEdges = getRemovedEdges(topks, i)
-            val sptsc: shortestPathTreeSideCost = new shortestPathTreeSideCost(dgraph, this, removedEdges, nodes.get(i).id, toID)
-            next = sptsc.buildNextShortestPath
-            if (next != null) {
-              nexts.add(next)
-              shortestPathTreeSideCost.rtotalCandidates += 1
-              if (shortestPathTreeSideCost.maxThreshold < next.cnodeSideCost) {
-                shortestPathTreeSideCost.maxThreshold = next.cnodeSideCost
-              }
-            }
-            sptsc.resetSideCost
+      var i = getStartIdx(topks)
+      while (i < nodes.size - 1) {
+        removedEdges = getRemovedEdges(topks, i)
+        val sptsc = new ShortestPathTreeSideCost(dgraph, this, removedEdges, nodes(i).id, toID)
+        next = sptsc.buildNextShortestPath
+        if (next != null) {
+          nexts.append(next)
+          //TODO write static variable
+          ShortestPathTreeSideCost.rtotalCandidates += 1
+          if (ShortestPathTreeSideCost.maxThreshold < next.cnodeSideCost) {
+            //TODO write static variable
+            ShortestPathTreeSideCost.maxThreshold = next.cnodeSideCost
           }
-          ({
-            i += 1;
-            i - 1
-          })
         }
+        sptsc.resetSideCost
+        i += 1
+
       }
       return nexts
     }
 
-    /**
-     * 每次路径未必都从source开始算，我们获取正确的，减少重复计算的启动点
-     * 什么是正确的启动点
-     * top 1的source node设置为开始的节点
-     * 那么，在所有确定的topk路径中，source node前面的节点实际上都以及处理过了
-     * 我们应该扫描现有的topk的路径，和当前路径，发现当前路径中最靠后的，和现有路径重复的，现有topk路径
-     * source node之前的节点，作为我们正确的启动节点
-     * @param topks List
-     * @return int
-     */
-    private def getStartIdx(topks: List[Path]): Int = {
+    def getStartIdx(topks: ArrayBuffer[Path]): Int = {
       var cpath: Path = null
       var idx: Int = 0
       var cedge1: Edge = null
-      var cedge2: Edge = null {
-        var i: Int = 0
-        while (i < topks.size - 1) {
-          {
-            cpath = topks.get(i) {
-              var j: Int = 0
-              while (j < cpath.edges.size && j < this.size) {
-                {
-                  cedge1 = cpath.edges.get(j)
-                  cedge2 = this.get(j)
-                  if (cedge1.fromNode.id != cedge2.fromNode.id) {
-                    break //todo: break is not supported
-                  }
-                  else {
-                    if (j > idx) {
-                      idx = j
-                    }
-                  }
-                }
-                ({
-                  j += 1;
-                  j - 1
-                })
-              }
-            }
+      var cedge2: Edge = null
+      var i: Int = 0
+      while (i < topks.size - 1) {
+        cpath = topks(i)
+        def getIdx(_idx: Int): Int = {
+          var idx = _idx
+          var j: Int = 0
+          while (j < cpath.edges.size
+            && j < size) {
+            cedge1 = cpath.edges(j)
+            cedge2 = get(j)
+            if (cedge1.fromNode.id != cedge2.fromNode.id) return idx
+            else if (j > idx) idx = j
+            j += 1;
           }
-          ({
-            i += 1;
-            i - 1
-          })
+          idx
         }
+        idx = getIdx(idx)
+        i += 1
       }
-      return idx
+      idx
     }
 
-    private def getRemovedEdges(topks: List[Path], idx: Int): List[Edge] = {
+    private def getRemovedEdges(topks: ArrayBuffer[Path], idx: Int): ArrayBuffer[Edge] = {
       var cpath: Path = null
-      val nextEdges: List[Edge] = new ArrayList[Edge]
-      var j: Int = 0 {
-        var i: Int = 0
-        while (i < topks.size) {
-          {
-            cpath = topks.get(i) {
-              j = 0
-              while (j < cpath.size && j < idx) {
-                {
-                  if (!cpath.get(j).equal(edges.get(j))) {
-                    break //todo: break is not supported
-                  }
-                }
-                ({
-                  j += 1;
-                  j - 1
-                })
-              }
-            }
-            if (j == idx && cpath.size > idx) {
-              if (!nextEdges.contains(cpath.get(idx))) {
-                nextEdges.add(cpath.get(idx))
-              }
-            }
-          }
-          ({
-            i += 1;
-            i - 1
-          })
+      val nextEdges = ArrayBuffer[Edge]()
+      var i: Int = 0
+      while (i < topks.size) {
+        cpath = topks(i)
+        var j = 0
+        var break = false
+        while (j < cpath.size && j < idx && !break) {
+          if (!cpath.get(j).equal(edges(j))) break = true
+          else j += 1
         }
+        if (j == idx
+          && cpath.size > idx
+          && !nextEdges.contains(cpath.get(idx)))
+          nextEdges.append(cpath.get(idx))
+        i += 1
       }
-      return nextEdges
+      nextEdges
     }
 
-    def size: Int = {
-      return edges.size
-    }
+    def size = edges.size
 
     def get(idx: Int): Edge = {
-      return edges.get(idx)
+      return edges(idx)
     }
 
     def isValidate: Boolean = {
       var cedge1: Edge = null
-      var cedge2: Edge = null {
-        var i: Int = 0
-        while (i < edges.size - 1) {
-          {
-            cedge1 = edges.get(i)
-            cedge2 = edges.get(i + 1)
-            if (cedge1.toNode ne cedge2.fromNode) {
-              return false
-            }
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
-      return true
-    }
-  }
-
-}
-
-object Path {
-  var count = 0
-}
-
-class Graph(val size: Int) {
-  var nodes = ArrayBuffer[Node]()
-  var size: Int = 0
-
-  def nodeNum: Int = {
-    return size
-  }
-
-  def this(size1: Int) {
-    this()
-    {
+      var cedge2: Edge = null
       var i: Int = 0
-      while (i < size1) {
-        {
-          nodes.add(new node(i))
-        }
-        ({
-          i += 1;
-          i - 1
-        })
+      while (i < edges.size - 1) {
+        cedge1 = edges(i)
+        cedge2 = edges(i + 1)
+        if (cedge1.toNode ne cedge2.fromNode) return false
+        i += 1
       }
+      true
     }
-    size = size1
   }
 
-  def constructEdgsFromDB(sta: Statement, prefix: String) {
-    try {
-      val SQLState: String = " select fromnode, tonode, cost from " + prefix + "edge"
-      var rs: ResultSet = null
-      try {
-        rs = sta.executeQuery(SQLState)
+  object Path {
+    var count = 0
+  }
+
+  class Graph(var size: Int) {
+    var nodes = ArrayBuffer.tabulate[Node](size)(new Node(_))
+
+    def nodeNum = size
+
+    def getOutEdge(fromID: Int): ArrayBuffer[Edge] =
+      nodes(fromID).getOutEdgesInGraph
+
+    def getInEdge(toID: Int): ArrayBuffer[Edge] =
+      nodes(toID).getInEdgesInGraph
+
+    def getNodes = nodes
+
+    def getNodeById(id: Int): Node = nodes(id)
+
+    def clearForNextSPT {
+      nodes.foreach(_.clearForNextSPT)
+    }
+
+    def setSideCost {
+      nodes.foreach(_.setSideCost)
+    }
+
+    def getShorestPath(fromNode: Int, toNode: Int): Path = {
+      var fnode = nodes(fromNode)
+      var tnode = nodes(toNode)
+      val spath = new Path(this)
+      var tmp: Node = fnode
+      var cedge: Edge = null
+      while (tmp.parent != -1) {
+        cedge = new Edge
+        cedge.fromNode = tmp
+        cedge.toNode = tmp.preEdge.toNode
+        cedge.distance = tmp.preEdge.distance
+        tmp = getNodeById(tmp.parent)
+        cedge.toNode = tmp
+        spath.addEdgeIntoPath(cedge)
       }
-      catch {
-        case e1: Exception => {
-          database.restartConnection
-          rs = database.sta.executeQuery(SQLState)
-        }
-      }
-      var fromID: String = null
-      var toID: String = null
-      var cost: Int = 0
-      var cnode: Node = null
-      while (rs.next) {
-        fromID = rs.getString("fromNode").trim
-        toID = rs.getString("toNode").trim
-        cost = rs.getInt("cost")
-        var ID: Integer = new Integer(fromID.trim)
-        cnode = nodes.get(ID.intValue)
-        ID = new Integer(toID.trim)
-        cnode.addEdge(nodes.get(ID.intValue), cost)
-      }
+      spath
     }
-    catch {
-      case e: Exception => {
-        e.printStackTrace(System.out)
-      }
+
+    def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int) {
+      var spath: Path = getShorestPath(fromNode, toNode)
+      spath.setSourceNode(this.getNodeById(fromNode))
+      var paths = new TopKPaths(this, spath)
+      if (Parameter.earlyTerminate)
+        paths.buildTopKPathsEarly(topk, methodType)
+      else
+        paths.buildTopKPathsNormal(topk, methodType)
+      spath = null
+      paths = null
+      //TODO wtf?!
+      System.gc
     }
-  }
 
-  /**
-   * 返回一个节点相邻的边
-   * @param fromID String
-   * @return List
-   */
-  def getOutEdge(fromID: Int): List[Edge] = {
-    val cnode: Node = nodes.get(fromID)
-    return cnode.getOutEdgesInGraph
-  }
-
-  def getInEdge(toID: Int): List[Edge] = {
-    val cnode: Node = nodes.get(toID)
-    return cnode.getInEdgesInGraph
-  }
-
-  def getNodes: List[Node] = {
-    return nodes
-  }
-
-  def getNodeById(id: Int): Node = {
-    if (nodes == null) return null
-    return nodes.get(id)
-  }
-
-  def clearForNextSPT {
-    var cnode: Node = null {
-      var i: Int = 0
-      while (i < nodes.size) {
-        {
-          cnode = nodes.get(i)
-          cnode.clearForNextSPT
-        }
-        ({
-          i += 1;
-          i - 1
-        })
-      }
+    def resetNodeCost {
+      nodes.foreach(n => {
+        n.cost = Int.MaxValue
+        n.parent = -1
+        n.preEdge = null
+      })
     }
   }
-
-  /**
-   * set sideCost to every node, according to Eppstein.
-   */
-  def setSideCost {
-    var cnode: Node = null {
-      var i: Int = 0
-      while (i < nodes.size) {
-        {
-          cnode = nodes.get(i)
-          cnode.setSideCost
-        }
-        ({
-          i += 1;
-          i - 1
-        })
-      }
-    }
-  }
-
-  def getShorestPath(fromNode: Int, toNode: Int): Path = {
-    var fnode: Node = null
-    var tnode: Node = null
-    fnode = nodes.get(fromNode)
-    tnode = nodes.get(toNode)
-    val spath: Path = new path(this)
-    var tmp: Node = fnode
-    var cedge: Edge = null
-    while (tmp.parent != -1) {
-      cedge = new edge
-      cedge.fromNode = tmp
-      cedge.toNode = tmp.preEdge.toNode
-      cedge.distance = tmp.preEdge.distance
-      tmp = this.getNodeById(tmp.parent)
-      cedge.toNode = tmp
-      spath.addEdgeIntoPath(cedge)
-    }
-    return spath
-  }
-
-  def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int) {
-    var spath: Path = this.getShorestPath(fromNode, toNode)
-    spath.setSourceNode(this.getNodeById(fromNode))
-    var paths: topKPaths = new topKPaths(this, spath)
-    if (parameter.earlyTerminate) {
-      paths.buildTopKPathsEarly(topk, methodType)
-    }
-    else {
-      paths.buildTopKPathsNormal(topk, methodType)
-    }
-    spath = null
-    paths = null
-    System.gc
-  }
-
-  def resetNodeCost {
-    var cnode: Node = null {
-      var i: Int = 0
-      while (i < nodes.size) {
-        {
-          cnode = nodes.get(i)
-          cnode.cost = Integer.MAX_VALUE
-          cnode.parent = -1
-          cnode.preEdge = null
-        }
-        ({
-          i += 1;
-          i - 1
-        })
-      }
-    }
-  }
-}
-
 }
