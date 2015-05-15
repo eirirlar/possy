@@ -1,6 +1,7 @@
 package com.kodeworks.possy
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable
 
 object Gao {
 
@@ -51,7 +52,7 @@ object Gao {
   }
 
   class Node(val id: Int) {
-    var fibNode: FibHeapNode[_] = null
+    var fibNode: FibHeapNode[Node] = null
     var outEdgesInGraph = ArrayBuffer[Edge]()
     var inEdgesInGraph = ArrayBuffer[Edge]()
     var edgesInSPT = ArrayBuffer[Edge]()
@@ -227,7 +228,7 @@ object Gao {
       }
       var next: Path = null
       if (edges.size < 1) return nexts
-      var removedEdges: List[Edge] = null
+      var removedEdges: ArrayBuffer[Edge] = null
       var i = getStartIdx(topks)
       while (i < nodes.size - 1) {
         removedEdges = getRemovedEdges(topks, i)
@@ -266,7 +267,7 @@ object Gao {
             cedge2 = get(j)
             if (cedge1.fromNode.id != cedge2.fromNode.id) return idx
             else if (j > idx) idx = j
-            j += 1;
+            j += 1
           }
           idx
         }
@@ -384,4 +385,345 @@ object Gao {
       })
     }
   }
+
+  object PathCandidates {
+    var app: Double = 1
+  }
+
+  class PathCandidates(shortest: Path) {
+    var candidates = ArrayBuffer[ArrayBuffer[Path]]()
+    var currentIdx = 0
+    var currentPos = 0
+    var exactResults = 0
+    var idx = 0
+    val shortestDistance = shortest.totalDistance
+    addOneCandidatePath(shortest)
+
+
+    def enough(k: Int, cur_num: Int, cur_len: Int, topks: ArrayBuffer[Path]): Boolean = {
+      var same_len1 = 0
+      var same_len2 = 0
+      for (p <- topks
+           if p.getLength == cur_len)
+        same_len1 += 1
+
+      for (ps <- candidates;
+           p <- ps
+           if p.getLength == cur_len) {
+        same_len2 += 1
+        same_len2 - 1
+      }
+      cur_num + same_len2 - same_len1 > k
+    }
+
+    def getCurrent: Path = {
+      if (currentIdx >= candidates.size)
+        return null
+      var currentResults: ArrayBuffer[Path] = candidates(currentIdx)
+      if (currentPos >= currentResults.size || currentResults.size == 0) {
+        currentIdx += 1
+        var break = false
+        while (currentIdx < candidates.size && !break) {
+          currentResults = candidates(currentIdx)
+          if (currentResults.size != 0)
+            break = true
+          else
+            currentIdx += 1
+        }
+        currentPos = 0
+      }
+      if (currentIdx == candidates.size) return null
+      currentResults = candidates(currentIdx)
+      val onePath: Path = currentResults(currentPos)
+      currentPos += 1
+      exactResults += 1
+      if (Parameter.detail && idx >= 1)
+        System.out.println(idx + " : " + onePath.toString)
+      idx += 1
+      onePath
+    }
+
+    def addOneCandidatePath(onePath: Path) {
+      val idx = onePath.totalDistance - shortestDistance
+      if (idx >= candidates.size) {
+        var i = candidates.size - 1
+        while (i < idx) {
+          candidates.append(ArrayBuffer[Path]())
+          i += 1
+        }
+      }
+      var results = candidates(idx)
+      for (cpath <- results
+           if cpath.toString.equalsIgnoreCase(onePath.toString))
+        return
+      results.append(onePath)
+    }
+
+    def addOneCandidatePathWithoutTesting(onePath: Path) {
+      for (ps <- candidates;
+           p <- ps
+           if p.isEqual(onePath)) return
+      val idx = onePath.totalDistance - shortestDistance
+      if (idx >= candidates.size) {
+        var i = candidates.size - 1
+        while (i < idx) {
+          candidates.append(ArrayBuffer[Path]())
+          i += 1
+        }
+        candidates(idx).append(onePath)
+      }
+    }
+
+    def enoughResults(k: Int): Boolean = {
+      val maxLen: Int = (((currentIdx + shortestDistance) * PathCandidates.app).toInt) - shortestDistance
+      var sunResults: Int = candidates(currentIdx).size - currentPos
+      var i: Int = currentIdx + 1
+      while (i < maxLen && i < candidates.size) {
+        sunResults = sunResults + candidates(i).size
+        i += 1
+      }
+      ((exactResults + sunResults) > k)
+    }
+
+    def outPutRestResult(topk: Int, curNum: Int) {
+      var cur_num = curNum
+      if (!Parameter.detail) return
+      val maxLen: Int = (((currentIdx + shortestDistance) * PathCandidates.app).toInt) - shortestDistance
+      var count: Int = exactResults
+      var results: ArrayBuffer[Path] = null
+      var onePath: Path = null
+      var i: Int = currentPos
+      while (currentIdx < candidates.size && i < candidates(currentIdx).size) {
+        if (cur_num > topk) return
+        onePath = candidates(currentIdx)(i)
+        System.out.println(count + " : " + onePath.toString)
+        count += 1
+        cur_num += 1
+        i += 1
+      }
+      currentIdx += 1
+      i = currentIdx
+      while (i < maxLen && i < candidates.size) {
+        results = candidates(i)
+        var j: Int = 0
+        while (j < results.size) {
+          if (cur_num > topk) return
+          onePath = results(j)
+          System.out.println(count + " : " + onePath.toString)
+          count += 1
+          cur_num += 1
+          j += 1
+        }
+        i += 1
+      }
+    }
+  }
+
+  object shortestPathTree {
+    var OUT: Int = 1
+    var IN: Int = 0
+  }
+
+  class ShortestPathTree(var dgraph: Graph, var rootID: Int, var direction: Int = 1) {
+    var activeNodesList: ArrayBuffer[Node] = ArrayBuffer[Node]()
+    var nodesFinished = mutable.Set[Node]()
+    var fibHeap: FibHeap[Node] = new FibHeap[Node]
+    var fibnodesHash = mutable.Map[AnyRef, AnyRef]()
+    var costs = ArrayBuffer[Int]()
+    var leafNodesList = ArrayBuffer[Node]()
+    var mergeNode: Node = null
+    var benefit = 0
+    var maxLevel = 0
+    var maxCost = 0
+    var totalNodes = 0
+    dgraph.clearForNextSPT
+    var rootNode: Node = dgraph.getNodeById(rootID)
+    rootNode.cost = 0
+
+    def constructRevSPTInMem_Fib {
+      var cnode: Node = null
+      cnode = rootNode
+      nodesFinished.add(cnode)
+      var break = false
+      while (cnode != null && !break) {
+        extendInNodesInMemory_Fib(cnode)
+        var n: FibHeapNode[Node] = null
+        n = fibHeap.removeMin
+        if (n == null) break = true
+        else {
+          cnode = n.getData
+          cnode.fibNode = null
+          nodesFinished.add(cnode)
+        }
+      }
+      initalCost(dgraph.nodeNum)
+      visitTree
+    }
+
+    def extendInNodesInMemory_Fib(cnode: Node) {
+      var fromID = 0
+      var nextCost = 1
+      var fromNode: Node = null
+      var nextEdge: Edge = null
+      var rs = dgraph.getInEdge(cnode.id)
+      for (edge <- rs) {
+        fromID = edge.fromNode.id
+        nextCost = edge.distance
+        fromNode = dgraph.getNodeById(fromID)
+        if (fromNode == null || !nodesFinished.contains(fromNode)) {
+          if (fromNode.fibNode == null) {
+            fromNode = dgraph.getNodeById(fromID)
+            fromNode.cost = cnode.cost + nextCost
+            nextEdge = new Edge
+            nextEdge.fromNode = cnode
+            nextEdge.toNode = fromNode
+            nextEdge.distance = nextCost
+            fromNode.preEdge = nextEdge
+            cnode.addEdgeIntoSPT(nextEdge)
+            val n: FibHeapNode[Node] = new FibHeapNode[Node](fromNode, fromNode.cost)
+            fromNode.fibNode = n
+            fibHeap.insert(n, n.getKey)
+          }
+          else if (fromNode.cost > cnode.cost + nextCost) {
+            val pnodeID: Int = fromNode.getPreNodeID
+            val pnode: Node = dgraph.getNodeById(pnodeID)
+            nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
+            pnode.removeEdgeInSPT(nextEdge)
+            nextEdge.toNode = fromNode
+            nextEdge.fromNode = cnode
+            nextEdge.distance = nextCost
+            fromNode.preEdge = nextEdge
+            cnode.addEdgeIntoSPT(nextEdge)
+            fromNode.cost = cnode.cost + nextCost
+            fibHeap.decreaseKey(fromNode.fibNode, fromNode.cost)
+          }
+        }
+      }
+    }
+
+    def initalCost(size: Int) {
+      costs = ArrayBuffer.fill(size)(Int.MaxValue)
+    }
+
+    def getNodeWithMinCost: Node = {
+      if (activeNodesList.isEmpty) return null
+      activeNodesList.minBy(_.cost)
+    }
+
+    def extendInNodesInMemory(cnode: Node) {
+      var fromID = 0
+      var nextCost = 1
+      var fromNode: Node = null
+      var nextEdge: Edge = null
+      var rs = dgraph.getInEdge(cnode.id)
+      for (edge <- rs) {
+        fromID = edge.fromNode.id
+        nextCost = edge.distance
+        fromNode = dgraph.getNodeById(fromID)
+        if (fromNode == null || nodesFinished.contains(fromNode)) {
+          if (!activeNodesList.contains(fromNode)) {
+            fromNode = dgraph.getNodeById(fromID)
+            fromNode.cost = cnode.cost + nextCost
+            nextEdge = new Edge
+            nextEdge.fromNode = cnode
+            nextEdge.toNode = fromNode
+            nextEdge.distance = nextCost
+            fromNode.preEdge = nextEdge
+            cnode.addEdgeIntoSPT(nextEdge)
+            activeNodesList.append(fromNode)
+          }
+          else if (fromNode.cost > cnode.cost + nextCost) {
+            val pnodeID: Int = fromNode.getPreNodeID
+            val pnode: Node = dgraph.getNodeById(pnodeID)
+            nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
+            pnode.removeEdgeInSPT(nextEdge)
+            nextEdge.toNode = fromNode
+            nextEdge.fromNode = cnode
+            nextEdge.distance = nextCost
+            fromNode.preEdge = nextEdge
+            cnode.addEdgeIntoSPT(nextEdge)
+            fromNode.cost = cnode.cost + nextCost
+          }
+        }
+      }
+    }
+
+    def visitTree: Int = {
+      val wklist = mutable.Queue[Node]()
+      wklist.enqueue(rootNode)
+      rootNode.cost = 0
+      rootNode.parent = -1
+      rootNode.level = 1
+      var cnt = 0
+      var tempmaxLevel = 0
+      var cnode: Node = null
+      var edgeCnt = 0
+      var cedge: Edge = null
+      leafNodesList.clear
+      totalNodes = 0
+      while (!wklist.isEmpty) {
+        cnode = wklist.dequeue
+        if (maxCost < cnode.cost) {
+          maxCost = cnode.cost
+        }
+        totalNodes += 1
+        this.costs(cnode.id) = cnode.cost
+        var childNode: Node = null
+        edgeCnt = edgeCnt + cnode.edgesInSPT.size
+        if (cnode.edgesInSPT.isEmpty) {
+          leafNodesList.add(0, cnode)
+        }
+        {
+          var i: Int = 0
+          while (i < cnode.getEdgesInSPT.size) {
+            {
+              cedge = cnode.getEdgesInSPT.get(i)
+              childNode = cedge.getToNode
+              childNode.cost = cnode.cost + cedge.distance
+              childNode.parent = cnode.id
+              wklist.add(childNode)
+              childNode.level = cnode.level + 1
+              if (childNode.level > tempmaxLevel) {
+                tempmaxLevel = childNode.level
+              }
+              cnt += 1
+            }
+            ({
+              i += 1;
+              i - 1
+            })
+          }
+        }
+      }
+      this.maxLevel = tempmaxLevel
+      return cnt
+    }
+
+    def getMaxCost: Int = {
+      return maxCost
+    }
+
+    def getMaxHeight: Int = {
+      return maxLevel
+    }
+
+    def getTotalNodes: Int = {
+      return totalNodes
+    }
+
+    def getRoot: Node = {
+      return rootNode
+    }
+
+    /**
+     * make the pre, post, parent annotation on each node(post is not calculated?)
+     * 第一个参数是pre, 第二个参数是-1;
+     *
+     */
+    def makePrePostParentAnnotation {
+      rootNode.annnotateNode(0, -1)
+      return
+    }
+  }
+
 }
