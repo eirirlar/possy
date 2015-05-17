@@ -2,6 +2,7 @@ package com.kodeworks.possy
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
+import scala.util.control.Breaks._
 
 object Gao {
 
@@ -143,13 +144,13 @@ object Gao {
       edgesInSPT.find(_.getToNodeID == toNodeID).getOrElse(null)
     }
 
-    def annnotateNode(pre: Int, parent: Int): Int = {
+    def annotateNode(pre: Int, parent: Int): Int = {
       this.parent = parent
       var currentPre: Int = pre
       this.pre = currentPre
       edgesInSPT.foreach(e => {
         currentPre += 1
-        currentPre = e.toNode.annnotateNode(currentPre, id)
+        currentPre = e.toNode.annotateNode(currentPre, id)
       })
       currentPre += 1
       post = currentPre
@@ -280,9 +281,7 @@ object Gao {
     private def getRemovedEdges(topks: ArrayBuffer[Path], idx: Int): ArrayBuffer[Edge] = {
       var cpath: Path = null
       val nextEdges = ArrayBuffer[Edge]()
-      var i: Int = 0
-      while (i < topks.size) {
-        cpath = topks(i)
+      for (cpath <- topks) {
         var j = 0
         var break = false
         while (j < cpath.size && j < idx && !break) {
@@ -293,7 +292,6 @@ object Gao {
           && cpath.size > idx
           && !nextEdges.contains(cpath.get(idx)))
           nextEdges.append(cpath.get(idx))
-        i += 1
       }
       nextEdges
     }
@@ -345,7 +343,7 @@ object Gao {
       nodes.foreach(_.setSideCost)
     }
 
-    def getShorestPath(fromNode: Int, toNode: Int): Path = {
+    def getShortestPath(fromNode: Int, toNode: Int): Path = {
       var fnode = nodes(fromNode)
       var tnode = nodes(toNode)
       val spath = new Path(this)
@@ -364,7 +362,7 @@ object Gao {
     }
 
     def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int) {
-      var spath: Path = getShorestPath(fromNode, toNode)
+      var spath: Path = getShortestPath(fromNode, toNode)
       spath.setSourceNode(this.getNodeById(fromNode))
       var paths = new TopKPaths(this, spath)
       if (Parameter.earlyTerminate)
@@ -519,7 +517,7 @@ object Gao {
     }
   }
 
-  object shortestPathTree {
+  object ShortestPathTree {
     var OUT: Int = 1
     var IN: Int = 0
   }
@@ -670,23 +668,346 @@ object Gao {
         this.costs(cnode.id) = cnode.cost
         var childNode: Node = null
         edgeCnt = edgeCnt + cnode.edgesInSPT.size
-        if (cnode.edgesInSPT.isEmpty) {
-          leafNodesList.add(0, cnode)
+        if (cnode.edgesInSPT.isEmpty)
+          leafNodesList.prepend(cnode)
+        for (cedge <- cnode.edgesInSPT) {
+          childNode = cedge.getToNode
+          childNode.cost = cnode.cost + cedge.distance
+          childNode.parent = cnode.id
+          wklist.enqueue(childNode)
+          childNode.level = cnode.level + 1
+          if (childNode.level > tempmaxLevel) {
+            tempmaxLevel = childNode.level
+          }
+          cnt += 1
         }
-        {
-          var i: Int = 0
-          while (i < cnode.getEdgesInSPT.size) {
-            {
-              cedge = cnode.getEdgesInSPT.get(i)
-              childNode = cedge.getToNode
-              childNode.cost = cnode.cost + cedge.distance
-              childNode.parent = cnode.id
-              wklist.add(childNode)
-              childNode.level = cnode.level + 1
-              if (childNode.level > tempmaxLevel) {
-                tempmaxLevel = childNode.level
+      }
+      this.maxLevel = tempmaxLevel
+      cnt
+    }
+
+    def getMaxCost = maxCost
+
+    def getMaxHeight = maxLevel
+
+    def getTotalNodes = totalNodes
+
+    def getRoot = rootNode
+
+    def makePrePostParentAnnotation {
+      rootNode.annotateNode(0, -1)
+    }
+  }
+
+  object Parameter {
+    val detail = false
+    val earlyTerminate = false
+    val pruningNodes = false
+    val topks = 10
+  }
+
+  class ShortestPathTreeSideCost(
+                                  var dgraph: Graph,
+                                  var selected: Path,
+                                  var removedEdges: ArrayBuffer[Edge],
+                                  var sourceID: Int,
+                                  var targetID: Int) {
+    var activeNodesList = ArrayBuffer[Node]()
+    var nodesFinished = ArrayBuffer[Node]()
+    var removedNodes = ArrayBuffer[Node]()
+    var fibHeap: FibHeap[Node] = new FibHeap[Node]
+    var costs: Array[Int] = null
+    var leafNodesList = ArrayBuffer[Node]()
+    var sideCostThreshold = Int.MaxValue
+    var initValue = 0
+    var searchedNodes = 0
+    var maxThreshold = 0
+    var totalCandidates = 0
+    var rtotalCandidates = 0
+    var EL = 0
+    var sourceNode = dgraph.getNodeById(sourceID)
+    var targetNode = dgraph.getNodeById(targetID)
+    breakable {
+      for (cedge <- selected.edges) {
+        removedNodes.append(cedge.fromNode)
+        if (cedge.fromNode eq sourceNode) break
+        else initValue = initValue + cedge.sideCost
+      }
+    }
+    sourceNode.sideCost = initValue
+
+    def getNodeWithMinCost: Node = {
+      if (activeNodesList.isEmpty) return null
+      val nextNode = activeNodesList.head
+      activeNodesList.find(_.sideCost < nextNode.sideCost).getOrElse(nextNode)
+    }
+
+    private def isValidateCandidate(cnode: Node): Boolean = !removedNodes.contains(cnode)
+
+    def resetSideCost {
+      activeNodesList.foreach(_.sideCost = Int.MaxValue)
+      nodesFinished.foreach(_.sideCost = Int.MaxValue)
+    }
+
+    def extendNodesInMemory_Fib(cnode: Node) {
+      var toID = 0
+      var nextCost = 1
+      var toNode: Node = null
+      val nextEdge: Edge = null
+      var rs: ArrayBuffer[Edge] = dgraph.getOutEdge(cnode.id)
+      for (edge <- rs
+           if !isRemovedNextEdge(edge)) {
+        toID = edge.toNode.id
+        nextCost = edge.sideCost
+        toNode = dgraph.getNodeById(toID)
+        if (isValidateCandidate(toNode)) {
+          if (toNode != null && nodesFinished.contains(toNode)) {
+            if (toNode.treeLevel > cnode.treeLevel)
+              toNode.inComingEdges += 1
+          } else {
+            if (toNode.fibNode == null) {
+              toNode = dgraph.getNodeById(toID)
+              toNode.preEdgeSideCost = edge
+              toNode.sideCost = cnode.sideCost + nextCost
+              if (toNode.sideCost < 0) {
+                toNode.sideCost = Int.MaxValue
               }
-              cnt += 1
+              toNode.treeLevel = cnode.treeLevel + 1
+              toNode.inComingEdges = 1
+              if (toNode.sideCost <= this.sideCostThreshold) {
+                val n = new FibHeapNode[Node](toNode, toNode.sideCost)
+                toNode.fibNode = n
+                fibHeap.insert(n, n.getKey)
+              }
+            }
+            else if (toNode.sideCost > cnode.sideCost + nextCost) {
+              val pnodeID = toNode.preEdgeSideCost.fromNode.id
+              toNode.preEdgeSideCost = edge
+              toNode.treeLevel = cnode.treeLevel + 1
+              toNode.sideCost = cnode.sideCost + nextCost
+              fibHeap.decreaseKey(toNode.fibNode, toNode.sideCost)
+            }
+          }
+        }
+      }
+    }
+
+    def buildNextShortestPath: Path = {
+      var cnode = sourceNode
+      val n = new FibHeapNode[Node](cnode, cnode.sideCost)
+      cnode.fibNode = n
+      fibHeap.insert(n, n.getKey)
+      var next: Path = null
+      var firstTime = 0
+
+      var ret: Path = null
+
+      def hwile {
+        while (cnode != null) {
+          extendNodesInMemory_Fib(cnode)
+          fibHeap.delete(cnode.fibNode)
+          cnode.fibNode = null
+          nodesFinished.append(cnode)
+          if (fibHeap.min != null)
+            cnode = fibHeap.min.getData
+          else cnode = null
+          if (cnode == null) {
+            while (fibHeap.isEmpty == false) {
+              fibHeap.min.getData.fibNode = null
+              fibHeap.removeMin
+            }
+            ret = next
+            return
+          }
+          if (this.isTerminate(cnode)) {
+            if (firstTime == 0) {
+              next = this.generatePath(cnode)
+              if (next != null) {
+                next.cnodeSideCost = cnode.sideCost
+                firstTime += 1
+              }
+            }
+            if (Parameter.pruningNodes) {
+              if (EL == 1) {
+                if (rtotalCandidates == Parameter.topks) {
+                  if (ShortestPathTreeSideCost.sideCostThreshold > maxThreshold) {
+                    ShortestPathTreeSideCost.sideCostThreshold = maxThreshold
+                  }
+                  rtotalCandidates = 0
+                  maxThreshold = 0
+                }
+                return
+              }
+              if (EL == 0) {
+                if (totalCandidates >= Parameter.topks) {
+                  return
+                }
+                else {
+                  totalCandidates = totalCandidates + this.getIncomingEdgeCombations(cnode)
+                  if (cnode.sideCost > maxThreshold) {
+                    maxThreshold = cnode.sideCost
+                  }
+                  if (totalCandidates >= Parameter.topks) {
+                    if (ShortestPathTreeSideCost.sideCostThreshold > maxThreshold) {
+                      ShortestPathTreeSideCost.sideCostThreshold = maxThreshold
+                    }
+                  }
+                }
+              }
+            }
+            else return
+          }
+        }
+      }
+      hwile
+      if (null != ret) return ret
+
+      if (this.isTerminate(cnode) && next == null) {
+        next = this.generatePath(cnode)
+        if (next != null) {
+          next.cnodeSideCost = cnode.sideCost
+        }
+      }
+      while (fibHeap.isEmpty == false) {
+        fibHeap.min.getData.fibNode = null
+        fibHeap.removeMin
+      }
+      next
+    }
+
+    private def isTerminate(cnode: Node): Boolean = {
+      if (!(cnode.pre >= targetNode.pre && cnode.post <= targetNode.post)) return false
+      removedNodes.forall(rnode => !(cnode.pre >= rnode.pre && cnode.post <= rnode.post))
+    }
+
+    def generatePath(cnode: Node): Path = {
+      Path.count += 1
+      if (cnode == null || (sourceNode eq cnode)) return null
+
+      selected.edges.takeWhile
+
+      val spath: Path = new Path(dgraph)
+      {
+        var i = 0
+        while (i < selected.size) {
+          {
+            if (selected.get(i).fromNode eq sourceNode) {
+              break //todo: break is not supported
+            }
+            else spath.addEdgeIntoPath(selected.get(i))
+          }
+          ({
+            i += 1;
+            i - 1
+          })
+        }
+      }
+      spath.setSourceNode(sourceNode)
+      val second: Path = new path(dgraph)
+      var tmp: Edge = cnode.preEdgeSideCost
+      while (tmp.fromNode ne sourceNode) {
+        second.addEdgeFirst(tmp)
+        tmp = tmp.fromNode.preEdgeSideCost
+      }
+      spath.addEdgeIntoPath(tmp) {
+        var i = 0
+        while (i < second.size) {
+          {
+            spath.addEdgeIntoPath(second.get(i))
+          }
+          ({
+            i += 1;
+            i - 1
+          })
+        }
+      }
+      spath.setCnode(cnode)
+      tmp = cnode.preEdge
+      if (tmp != null) {
+        tmp = tmp.reverseEdge
+        while (tmp.toNode.id != targetID) {
+          spath.addEdgeIntoPath(tmp)
+          tmp = tmp.toNode.preEdge
+          if (tmp == null) tmp = null
+          tmp = tmp.reverseEdge
+        }
+        spath.addEdgeIntoPath(tmp)
+      }
+      else {
+        if (cnode.id != targetNode.id) {
+          return null
+        }
+      }
+      if (!spath.isValidate) {
+        System.out.println("current wrong path is " + spath.toString)
+      }
+      return spath
+    }
+
+    private def isRemovedNextEdge(cedge: Edge): Boolean = {
+      var removed: Edge = null {
+        var i = 0
+        while (i < removedEdges.size) {
+          {
+            removed = removedEdges.get(i)
+            if (removed.equal(cedge)) return true
+          }
+          ({
+            i += 1;
+            i - 1
+          })
+        }
+      }
+      return false
+    }
+
+    def setSideCostTreshold(maximalCost: Int) {
+      sideCostThreshold = maximalCost
+    }
+
+    def extendNodesInMemory(cnode: Node) {
+      var toID = 0
+      var nextCost = 1
+      var toNode: Node = null
+      val nextEdge: Edge = null
+      try {
+        var rs: ArrayBuffer[Edge] = null
+        rs = dgraph.getOutEdge(cnode.id)
+        var edge: Edge = null {
+          var i = 0
+          while (i < rs.size) {
+            {
+              edge = rs.get(i)
+              if (this.isRemovedNextEdge(edge)) continue //todo: continue is not supported
+              toID = edge.toNode.id
+              nextCost = edge.sideCost
+              toNode = dgraph.getNodeById(toID)
+              if (!this.isValidateCandidate(toNode)) continue //todo: continue is not supported
+              if (toNode != null && nodesFinished.contains(toNode)) {
+                if (toNode.treeLevel > cnode.treeLevel) {
+                  toNode.inComingEdges += 1
+                }
+                continue //todo: continue is not supported
+              }
+              if (!activeNodesList.contains(toNode)) {
+                toNode = dgraph.getNodeById(toID)
+                toNode.preEdgeSideCost = edge
+                toNode.sideCost = cnode.sideCost + nextCost
+                if (toNode.sideCost < 0) {
+                  toNode.sideCost = Int.MaxValue
+                }
+                toNode.treeLevel = cnode.treeLevel + 1
+                toNode.inComingEdges = 1
+                if (toNode.sideCost <= this.sideCostThreshold) {
+                  activeNodesList.add(toNode)
+                }
+              }
+              else if (toNode.sideCost > cnode.sideCost + nextCost) {
+                val pnodeID = toNode.preEdgeSideCost.fromNode.id
+                toNode.preEdgeSideCost = edge
+                toNode.treeLevel = cnode.treeLevel + 1
+                toNode.sideCost = cnode.sideCost + nextCost
+              }
             }
             ({
               i += 1;
@@ -695,34 +1016,33 @@ object Gao {
           }
         }
       }
-      this.maxLevel = tempmaxLevel
-      return cnt
+      catch {
+        case e: Exception => {
+          e.printStackTrace(System.out)
+        }
+      }
     }
 
-    def getMaxCost: Int = {
-      return maxCost
+    private def getIncomingEdgeCombations(cnode: Node): Int = {
+      var tmp: Edge = cnode.preEdgeSideCost
+      var before: Node = tmp.fromNode
+      if (before.pre > cnode.pre && before.post < cnode.post) {
+        return 0
+      }
+      while (before ne sourceNode) {
+        if (before.pre < cnode.pre && before.post > cnode.post) {
+          return 0
+        }
+        tmp = before.preEdgeSideCost
+        before = tmp.fromNode
+      }
+      return 1
     }
 
-    def getMaxHeight: Int = {
-      return maxLevel
-    }
-
-    def getTotalNodes: Int = {
-      return totalNodes
-    }
-
-    def getRoot: Node = {
-      return rootNode
-    }
-
-    /**
-     * make the pre, post, parent annotation on each node(post is not calculated?)
-     * 第一个参数是pre, 第二个参数是-1;
-     *
-     */
-    def makePrePostParentAnnotation {
-      rootNode.annnotateNode(0, -1)
-      return
+    def resetStaticForNextTime {
+      sideCostThreshold = Int.MaxValue
+      maxThreshold = 0
+      totalCandidates = 0
     }
   }
 
