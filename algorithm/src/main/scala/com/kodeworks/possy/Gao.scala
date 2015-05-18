@@ -1202,10 +1202,12 @@ object Gao {
   /*
   lookup - from node index, to node index, cost
    */
-  def kShortestPath(lookup: List[(Int, Int, Int)], end: Int, start: Int = 0, k: Int = 10) = {
+  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10) = {
     val gao = new Gao
     val graph = new gao.Graph(lookup.size)
-    lookup.foreach(l => graph.nodes(l._1).addEdge(graph.nodes(l._2), l._3))
+    for {(fromNode, edges) <- lookup
+         (weight, toNode) <- edges}
+      graph.nodes(fromNode).addEdge(graph.nodes(toNode), weight)
 
     val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
     spt.constructRevSPTInMem_Fib
