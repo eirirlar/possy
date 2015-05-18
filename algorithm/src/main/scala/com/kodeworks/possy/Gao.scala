@@ -712,17 +712,15 @@ object Gao {
                                   var removedEdges: ArrayBuffer[Edge],
                                   var sourceID: Int,
                                   var targetID: Int) {
+    import ShortestPathTreeSideCost._
     var activeNodesList = ArrayBuffer[Node]()
     var nodesFinished = ArrayBuffer[Node]()
     var removedNodes = ArrayBuffer[Node]()
     var fibHeap: FibHeap[Node] = new FibHeap[Node]
     var costs: Array[Int] = null
     var leafNodesList = ArrayBuffer[Node]()
-    var sideCostThreshold = Int.MaxValue
     var initValue = 0
     var searchedNodes = 0
-    var maxThreshold = 0
-    var totalCandidates = 0
     var rtotalCandidates = 0
     var EL = 0
     var sourceNode = dgraph.getNodeById(sourceID)
@@ -774,7 +772,7 @@ object Gao {
               }
               toNode.treeLevel = cnode.treeLevel + 1
               toNode.inComingEdges = 1
-              if (toNode.sideCost <= this.sideCostThreshold) {
+              if (toNode.sideCost <= sideCostThreshold) {
                 val n = new FibHeapNode[Node](toNode, toNode.sideCost)
                 toNode.fibNode = n
                 fibHeap.insert(n, n.getKey)
@@ -883,44 +881,17 @@ object Gao {
     def generatePath(cnode: Node): Path = {
       Path.count += 1
       if (cnode == null || (sourceNode eq cnode)) return null
-
-      selected.edges.takeWhile
-
       val spath: Path = new Path(dgraph)
-      {
-        var i = 0
-        while (i < selected.size) {
-          {
-            if (selected.get(i).fromNode eq sourceNode) {
-              break //todo: break is not supported
-            }
-            else spath.addEdgeIntoPath(selected.get(i))
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
+      selected.edges.takeWhile(_.fromNode ne sourceNode).foreach(spath.addEdgeIntoPath _)
       spath.setSourceNode(sourceNode)
-      val second: Path = new path(dgraph)
+      val second: Path = new Path(dgraph)
       var tmp: Edge = cnode.preEdgeSideCost
       while (tmp.fromNode ne sourceNode) {
         second.addEdgeFirst(tmp)
         tmp = tmp.fromNode.preEdgeSideCost
       }
-      spath.addEdgeIntoPath(tmp) {
-        var i = 0
-        while (i < second.size) {
-          {
-            spath.addEdgeIntoPath(second.get(i))
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
+      spath.addEdgeIntoPath(tmp)
+      spath.edges.foreach(spath.addEdgeIntoPath _)
       spath.setCnode(cnode)
       tmp = cnode.preEdge
       if (tmp != null) {
@@ -933,33 +904,17 @@ object Gao {
         }
         spath.addEdgeIntoPath(tmp)
       }
-      else {
-        if (cnode.id != targetNode.id) {
-          return null
-        }
-      }
+      else if (cnode.id != targetNode.id)
+        return null
       if (!spath.isValidate) {
+        //TODO what am I supposed to do with this?
         System.out.println("current wrong path is " + spath.toString)
       }
       return spath
     }
 
-    private def isRemovedNextEdge(cedge: Edge): Boolean = {
-      var removed: Edge = null {
-        var i = 0
-        while (i < removedEdges.size) {
-          {
-            removed = removedEdges.get(i)
-            if (removed.equal(cedge)) return true
-          }
-          ({
-            i += 1;
-            i - 1
-          })
-        }
-      }
-      return false
-    }
+    private def isRemovedNextEdge(cedge: Edge): Boolean =
+      removedEdges.find(_.equal(cedge)).nonEmpty
 
     def setSideCostTreshold(maximalCost: Int) {
       sideCostThreshold = maximalCost
@@ -970,25 +925,19 @@ object Gao {
       var nextCost = 1
       var toNode: Node = null
       val nextEdge: Edge = null
-      try {
-        var rs: ArrayBuffer[Edge] = null
-        rs = dgraph.getOutEdge(cnode.id)
-        var edge: Edge = null {
-          var i = 0
-          while (i < rs.size) {
-            {
-              edge = rs.get(i)
-              if (this.isRemovedNextEdge(edge)) continue //todo: continue is not supported
-              toID = edge.toNode.id
-              nextCost = edge.sideCost
-              toNode = dgraph.getNodeById(toID)
-              if (!this.isValidateCandidate(toNode)) continue //todo: continue is not supported
-              if (toNode != null && nodesFinished.contains(toNode)) {
-                if (toNode.treeLevel > cnode.treeLevel) {
-                  toNode.inComingEdges += 1
-                }
-                continue //todo: continue is not supported
-              }
+      var rs: ArrayBuffer[Edge] = null
+      rs = dgraph.getOutEdge(cnode.id)
+
+      for (edge <- rs) {
+        if (!isRemovedNextEdge(edge)) {
+          toID = edge.toNode.id
+          nextCost = edge.sideCost
+          toNode = dgraph.getNodeById(toID)
+          if (!this.isValidateCandidate(toNode)) {
+            if (toNode != null && nodesFinished.contains(toNode)) {
+              if (toNode.treeLevel > cnode.treeLevel)
+                toNode.inComingEdges += 1
+            } else {
               if (!activeNodesList.contains(toNode)) {
                 toNode = dgraph.getNodeById(toID)
                 toNode.preEdgeSideCost = edge
@@ -998,8 +947,8 @@ object Gao {
                 }
                 toNode.treeLevel = cnode.treeLevel + 1
                 toNode.inComingEdges = 1
-                if (toNode.sideCost <= this.sideCostThreshold) {
-                  activeNodesList.add(toNode)
+                if (toNode.sideCost <= sideCostThreshold) {
+                  activeNodesList.append(toNode)
                 }
               }
               else if (toNode.sideCost > cnode.sideCost + nextCost) {
@@ -1009,16 +958,7 @@ object Gao {
                 toNode.sideCost = cnode.sideCost + nextCost
               }
             }
-            ({
-              i += 1;
-              i - 1
-            })
           }
-        }
-      }
-      catch {
-        case e: Exception => {
-          e.printStackTrace(System.out)
         }
       }
     }
@@ -1026,9 +966,8 @@ object Gao {
     private def getIncomingEdgeCombations(cnode: Node): Int = {
       var tmp: Edge = cnode.preEdgeSideCost
       var before: Node = tmp.fromNode
-      if (before.pre > cnode.pre && before.post < cnode.post) {
+      if (before.pre > cnode.pre && before.post < cnode.post)
         return 0
-      }
       while (before ne sourceNode) {
         if (before.pre < cnode.pre && before.post > cnode.post) {
           return 0
@@ -1039,11 +978,17 @@ object Gao {
       return 1
     }
 
+    // TODO the fact that this is required prevents parallell execution
     def resetStaticForNextTime {
       sideCostThreshold = Int.MaxValue
       maxThreshold = 0
       totalCandidates = 0
     }
+  }
+  object ShortestPathTreeSideCost {
+    var sideCostThreshold = Int.MaxValue
+    var maxThreshold = 0
+    var totalCandidates = 0
   }
 
 }
