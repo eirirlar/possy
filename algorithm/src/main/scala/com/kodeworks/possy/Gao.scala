@@ -2,7 +2,6 @@ package com.kodeworks.possy
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
-import scala.util.control.Breaks._
 
 object Gao {
 
@@ -712,7 +711,9 @@ object Gao {
                                   var removedEdges: ArrayBuffer[Edge],
                                   var sourceID: Int,
                                   var targetID: Int) {
+
     import ShortestPathTreeSideCost._
+
     var activeNodesList = ArrayBuffer[Node]()
     var nodesFinished = ArrayBuffer[Node]()
     var removedNodes = ArrayBuffer[Node]()
@@ -720,11 +721,11 @@ object Gao {
     var costs: Array[Int] = null
     var leafNodesList = ArrayBuffer[Node]()
     var initValue = 0
-    var searchedNodes = 0
-    var rtotalCandidates = 0
-    var EL = 0
     var sourceNode = dgraph.getNodeById(sourceID)
     var targetNode = dgraph.getNodeById(targetID)
+
+    import scala.util.control.Breaks._
+
     breakable {
       for (cedge <- selected.edges) {
         removedNodes.append(cedge.fromNode)
@@ -985,10 +986,89 @@ object Gao {
       totalCandidates = 0
     }
   }
+
   object ShortestPathTreeSideCost {
     var sideCostThreshold = Int.MaxValue
     var maxThreshold = 0
     var totalCandidates = 0
+    var rtotalCandidates = 0
+    var EL = 0
+    var searchedNodes = 0
+  }
+
+  object TopKPaths {
+    //TODO combine yen and eppstein flag?
+    var COMBINEYENEPS: Int = 1
+  }
+
+  class TopKPaths(
+                   var dgraph: Graph,
+                   var shortestOne: Path) {
+
+    import TopKPaths._
+
+    var topks = ArrayBuffer[Path]()
+    var candidates = ArrayBuffer[Path]()
+    var toID = 0
+
+    if (shortestOne.size > 0) {
+      val last: Edge = shortestOne.get(shortestOne.size - 1)
+      toID = last.toNode.id
+    }
+
+    def buildTopKPathsEarly(topk: Int, methodType: Int): ArrayBuffer[Path] = {
+      var selected: Path = null
+      selected = shortestOne
+      if (Parameter.detail == true) System.out.println("0 : " + selected.toString)
+      topks.append(selected)
+      var itr = 0
+      val paths = new PathCandidates(selected)
+      while (!paths.enoughResults(topk)) {
+        var tmp = ArrayBuffer[Path]()
+        if (methodType == COMBINEYENEPS)
+          tmp = selected.getNextPaths(topks, toID)
+        tmp.foreach(paths.addOneCandidatePathWithoutTesting _)
+        selected = paths.getCurrent
+        if (selected != null) {
+          topks.append(selected)
+          itr += 1
+        }
+      }
+      paths.outPutRestResult(topk, itr)
+      return topks
+    }
+
+    def buildTopKPathsNormal(topk: Int, methodType: Int): ArrayBuffer[Path] = {
+      var selected: Path = null
+      selected = shortestOne
+      if (Parameter.detail == true) System.out.println("Path 0 : " + selected.toString)
+      topks.append(selected)
+      var itr = 0
+      while (itr < topk) {
+        var tmp = ArrayBuffer[Path]()
+        if (methodType == TopKPaths.COMBINEYENEPS)
+          tmp = selected.getNextPaths(topks, toID)
+
+        for (oneCandidate <- tmp
+             if !this.isConstainedIn(candidates, oneCandidate)
+               && !this.isConstainedIn(topks, oneCandidate)) {
+          candidates.append(oneCandidate)
+        }
+
+        if (candidates.isEmpty) return topks
+        selected = candidates.head
+        selected = candidates.find(_.totalDistance < selected.totalDistance).getOrElse(selected)
+        candidates.remove(candidates.indexOf(selected))
+        if (Parameter.detail)
+          System.out.println("Path " + (itr + 1) + " : " + selected.toString)
+        topks.append(selected)
+        itr += 1
+      }
+      topks
+    }
+
+    private def isConstainedIn(paths: ArrayBuffer[Path], newPath: Path): Boolean =
+      paths.find(_.isEqual(newPath)).nonEmpty
   }
 
 }
