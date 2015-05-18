@@ -8,8 +8,12 @@ class TestGao {
   def testGao {
     val nodeIdToIndex = lookup.keys.zipWithIndex.toMap
     val nodeIndexToId = nodeIdToIndex.map(_.swap)
-    val lookup2 = lookup.map(kv => nodeIdToIndex(kv._1) -> kv._2)
-    Gao.kShortestPath(lookup2,)
+    val lookup2: Map[Int, List[(Int, Int)]] = lookup.map(kv => nodeIdToIndex(kv._1) -> kv._2.map(kv => kv._1.toInt -> {
+      val x = nodeIdToIndex(kv._2)
+      x
+    }))
+    val ksp: Array[Array[Int]] = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 2)
+    println("ksp " + ksp)
     println("nodeIdToIndex " + nodeIdToIndex)
     println("nodeIndexToId " + nodeIndexToId)
     //    Gao.kShortestPath(lookup,-2, )
@@ -26,6 +30,7 @@ object TestGao {
     2 -> List((1.0, 5)),
     5 -> List((5.0, 0), (4.0, 3), (2.0, 7)),
     8 -> List((1.0, 5)),
+    3 -> Nil,
     -2 -> Nil
   )
 
@@ -35,6 +40,6 @@ object TestGao {
     List(0, 1, 2)
   )
   val path = List(
-    (2, 0), (2, 1), (1, 2)
+    (2, 0), (2, 1), (1, 2) // 2, 9, 1 -> 2, 5, 7
   )
 }
