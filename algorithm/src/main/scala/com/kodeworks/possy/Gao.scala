@@ -1,9 +1,12 @@
 package com.kodeworks.possy
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable
+import java.text.SimpleDateFormat
+import java.util.Date
 
-object Gao {
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
+class Gao {
 
   class Edge {
     var fromNode: Node = null
@@ -360,18 +363,20 @@ object Gao {
       spath
     }
 
-    def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int) {
+    def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int): ArrayBuffer[Path] = {
       var spath: Path = getShortestPath(fromNode, toNode)
       spath.setSourceNode(this.getNodeById(fromNode))
       var paths = new TopKPaths(this, spath)
-      if (Parameter.earlyTerminate)
-        paths.buildTopKPathsEarly(topk, methodType)
-      else
-        paths.buildTopKPathsNormal(topk, methodType)
+      var ret: ArrayBuffer[Path] =
+        if (Parameter.earlyTerminate)
+          paths.buildTopKPathsEarly(topk, methodType)
+        else
+          paths.buildTopKPathsNormal(topk, methodType)
       spath = null
       paths = null
       //TODO wtf?!
       System.gc
+      ret
     }
 
     def resetNodeCost {
@@ -700,8 +705,8 @@ object Gao {
 
   object Parameter {
     val detail = false
-    val earlyTerminate = false
-    val pruningNodes = false
+    var earlyTerminate = false
+    var pruningNodes = false
     val topks = 10
   }
 
@@ -979,12 +984,6 @@ object Gao {
       return 1
     }
 
-    // TODO the fact that this is required prevents parallell execution
-    def resetStaticForNextTime {
-      sideCostThreshold = Int.MaxValue
-      maxThreshold = 0
-      totalCandidates = 0
-    }
   }
 
   object ShortestPathTreeSideCost {
@@ -994,6 +993,13 @@ object Gao {
     var rtotalCandidates = 0
     var EL = 0
     var searchedNodes = 0
+
+    // TODO the fact that this is required prevents parallell execution
+    def resetStaticForNextTime {
+      sideCostThreshold = Int.MaxValue
+      maxThreshold = 0
+      totalCandidates = 0
+    }
   }
 
   object TopKPaths {
@@ -1035,7 +1041,7 @@ object Gao {
         }
       }
       paths.outPutRestResult(topk, itr)
-      return topks
+      topks
     }
 
     def buildTopKPathsNormal(topk: Int, methodType: Int): ArrayBuffer[Path] = {
@@ -1071,4 +1077,143 @@ object Gao {
       paths.find(_.isEqual(newPath)).nonEmpty
   }
 
+  class ShortestPath {
+    var queryNumber = 100
+    var simpleTimes1 = 0L
+    var simpleTimes2 = 0L
+    var indexTimes = 0L
+    var simpleDistance1 = 0
+    var simpleDistance2 = 0
+    var indexDistance = 0
+    var source = 0
+    var target = 9999
+
+    def topKShortestPath(graph: Graph) {
+      this.ourMemoryTopK(graph, source, target)
+    }
+
+    def ourMemoryTopK(dgraph: Graph, source: Int, target: Int) {
+      var startTime1 = 0L
+      var startTime2 = 0L
+      var spt: ShortestPathTree = null
+      var content: String = ""
+      System.out.println("Begin our method-------------------")
+      startTime1 = System.currentTimeMillis
+      spt = new ShortestPathTree(dgraph, target, ShortestPathTree.IN)
+      System.out.println("Constructing SPT...")
+      spt.constructRevSPTInMem_Fib
+      System.out.println("Making PrePostParentAnnotations...")
+      spt.makePrePostParentAnnotation
+      content = content + " Build First Shortest Path Tree=" + (System.currentTimeMillis - startTime1)
+      val spttime = (System.currentTimeMillis - startTime1)
+      System.out.println("Setting extra costs...")
+      dgraph.setSideCost
+      startTime2 = System.currentTimeMillis
+      ShortestPathTreeSideCost.resetStaticForNextTime
+      if (!Parameter.pruningNodes) {
+        ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+      }
+      System.out.println("Building shortest paths...")
+      val sf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+      val date = new Date
+      System.out.println(sf.format(date))
+      var ii = 0
+      var jj = 0
+
+      {
+        jj = 0
+        while (jj <= 1) {
+          {
+            if (jj == 0) Parameter.earlyTerminate = false
+            else Parameter.earlyTerminate = true
+
+            {
+              ii = 0
+              while (ii < 3) {
+                {
+                  System.out.println("===========================================================")
+                  if (ii == 0) {
+                    Parameter.pruningNodes = false
+                    if (Parameter.earlyTerminate == true) {
+                      System.out.println("Testing KR: k-reduction strategy, without pruning optimizations")
+                    }
+                    else {
+                      System.out.println("Testing NM: normal termination, without pruning optimizations")
+                    }
+                  }
+                  if (ii == 1) {
+                    Parameter.pruningNodes = true
+                    ShortestPathTreeSideCost.EL = 0
+                    if (Parameter.earlyTerminate == true) {
+                      System.out.println("Testing KRE: k-reduction with Eager Strategy")
+                    }
+                    else {
+                      System.out.println("Testing NME: normal termination with Eager Strategy")
+                    }
+                  }
+                  if (ii == 2) {
+                    Parameter.pruningNodes = true
+                    ShortestPathTreeSideCost.EL = 1
+                    if (Parameter.earlyTerminate == true) {
+                      System.out.println("Testing KRL: k-reduction with Lazy Strategy")
+                    }
+                    else {
+                      System.out.println("Testing NML: normal termination with Lazy Strategy")
+                    }
+                  }
+                  System.gc
+                  System.out.println("k=" + Parameter.topks + " :")
+                  dgraph.buildTopKPaths(source, target, Parameter.topks, TopKPaths.COMBINEYENEPS)
+                  content = content + "  Locate top k paths=" + (System.currentTimeMillis - startTime2)
+                  content = content + "  total time cost =" + ((System.currentTimeMillis - startTime2) + spttime)
+                  content = content + " \r\n The threshold : " + ShortestPathTreeSideCost.sideCostThreshold
+                  content = content + "\r\n"
+                  System.out.println(content)
+                  startTime2 = System.currentTimeMillis
+                  content = null
+                  System.gc
+                  content = ""
+                  content = content + " Build First Shortest Path Tree=" + spttime
+                  ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+                  ShortestPathTreeSideCost.totalCandidates = 0
+                  ShortestPathTreeSideCost.rtotalCandidates = 0
+                  ShortestPathTreeSideCost.maxThreshold = 0
+                  ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+                }
+                ({
+                  ii += 1;
+                  ii - 1
+                })
+              }
+            }
+          }
+          ({
+            jj += 1;
+            jj - 1
+          })
+        }
+      }
+    }
+  }
+
+}
+
+object Gao {
+  /*
+  lookup - from node index, to node index, cost
+   */
+  def kShortestPath(lookup: List[(Int, Int, Int)], end: Int, start: Int = 0, k: Int = 10) = {
+    val gao = new Gao
+    val graph = new gao.Graph(lookup.size)
+    lookup.foreach(l => graph.nodes(l._1).addEdge(graph.nodes(l._2), l._3))
+
+    val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
+    spt.constructRevSPTInMem_Fib
+    spt.makePrePostParentAnnotation
+    graph.setSideCost
+    gao.ShortestPathTreeSideCost.resetStaticForNextTime
+
+    graph.buildTopKPaths(start, end, gao.Parameter.topks, gao.TopKPaths.COMBINEYENEPS)
+      .map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.fromNode.id).toArray).toArray
+  }
 }
