@@ -805,6 +805,7 @@ class Gao {
       var firstTime = 0
 
       var ret: Path = null
+      var doRet = false
 
       def hwile {
         while (cnode != null) {
@@ -821,6 +822,7 @@ class Gao {
               fibHeap.removeMin
             }
             ret = next
+            doRet = true
             return
           }
           if (this.isTerminate(cnode)) {
@@ -864,7 +866,7 @@ class Gao {
         }
       }
       hwile
-      if (null != ret) return ret
+      if (doRet) return ret
 
       if (this.isTerminate(cnode) && next == null) {
         next = this.generatePath(cnode)
@@ -1215,7 +1217,7 @@ object Gao {
     graph.setSideCost
     gao.ShortestPathTreeSideCost.resetStaticForNextTime
 
-    graph.buildTopKPaths(start, end, gao.Parameter.topks, gao.TopKPaths.COMBINEYENEPS)
-      .map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.fromNode.id).toArray).toArray
+    val topkps = graph.buildTopKPaths(start, end, k - 1 max 0, gao.TopKPaths.COMBINEYENEPS)
+    topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
   }
 }
