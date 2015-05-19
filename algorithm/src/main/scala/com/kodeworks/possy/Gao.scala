@@ -4,6 +4,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 class Gao {
+
   class Edge(
               var fromNode: Node,
               var toNode: Node,
@@ -194,10 +195,12 @@ class Gao {
       val nextEdges = ArrayBuffer[Edge]()
       for (cpath <- topks) {
         var j = 0
-        var break = false
-        while (j < cpath.edges.size && j < idx && !break) {
-          if (!cpath.edges(j).equal(edges(j))) break = true
-          else j += 1
+        import scala.util.control.Breaks._
+        breakable {
+          while (j < cpath.edges.size && j < idx) {
+            if (!cpath.edges(j).equal(edges(j))) break
+            else j += 1
+          }
         }
         if (j == idx
           && cpath.edges.size > idx
@@ -310,13 +313,15 @@ class Gao {
       var currentResults: ArrayBuffer[Path] = candidates(currentIdx)
       if (currentPos >= currentResults.size || currentResults.size == 0) {
         currentIdx += 1
-        var break = false
-        while (currentIdx < candidates.size && !break) {
-          currentResults = candidates(currentIdx)
-          if (currentResults.size != 0)
-            break = true
-          else
-            currentIdx += 1
+        import scala.util.control.Breaks._
+        breakable {
+          while (currentIdx < candidates.size) {
+            currentResults = candidates(currentIdx)
+            if (currentResults.size != 0)
+              break
+            else
+              currentIdx += 1
+          }
         }
         currentPos = 0
       }
@@ -397,16 +402,18 @@ class Gao {
       var cnode: Node = null
       cnode = rootNode
       nodesFinished.add(cnode)
-      var break = false
-      while (cnode != null && !break) {
-        extendInNodesInMemory_Fib(cnode)
-        var n: FibHeapNode[Node] = null
-        n = fibHeap.removeMin
-        if (n == null) break = true
-        else {
-          cnode = n.getData
-          cnode.fibNode = null
-          nodesFinished.add(cnode)
+      import scala.util.control.Breaks._
+      breakable {
+        while (cnode != null) {
+          extendInNodesInMemory_Fib(cnode)
+          var n: FibHeapNode[Node] = null
+          n = fibHeap.removeMin
+          if (n == null) break
+          else {
+            cnode = n.getData
+            cnode.fibNode = null
+            nodesFinished.add(cnode)
+          }
         }
       }
       initalCost(dgraph.nodes.size)
@@ -563,15 +570,14 @@ class Gao {
 
     import ShortestPathTreeSideCost._
 
-    var activeNodesList = ArrayBuffer[Node]()
-    var nodesFinished = ArrayBuffer[Node]()
-    var removedNodes = ArrayBuffer[Node]()
+    val sourceNode = dgraph.getNodeById(sourceID)
+    val targetNode = dgraph.getNodeById(targetID)
+    val activeNodesList = ArrayBuffer[Node]()
+    val nodesFinished = ArrayBuffer[Node]()
+    val removedNodes = ArrayBuffer[Node]()
+    val leafNodesList = ArrayBuffer[Node]()
     var fibHeap: FibHeap[Node] = new FibHeap[Node]
-    var costs: Array[Int] = null
-    var leafNodesList = ArrayBuffer[Node]()
     var initValue = 0
-    var sourceNode = dgraph.getNodeById(sourceID)
-    var targetNode = dgraph.getNodeById(targetID)
 
     import scala.util.control.Breaks._
 
@@ -612,9 +618,8 @@ class Gao {
               toNode = dgraph.getNodeById(toID)
               toNode.preEdgeSideCost = edge
               toNode.sideCost = cnode.sideCost + nextCost
-              if (toNode.sideCost < 0) {
+              if (toNode.sideCost < 0)
                 toNode.sideCost = Int.MaxValue
-              }
               toNode.treeLevel = cnode.treeLevel + 1
               toNode.inComingEdges = 1
               if (toNode.sideCost <= sideCostThreshold) {
@@ -643,10 +648,8 @@ class Gao {
       var next: Path = null
       var firstTime = 0
 
-      var ret: Path = null
-      var doRet = false
-
-      def hwile {
+      import scala.util.control.Breaks._
+      breakable {
         while (cnode != null) {
           extendNodesInMemory_Fib(cnode)
           fibHeap.delete(cnode.fibNode)
@@ -660,9 +663,7 @@ class Gao {
               fibHeap.min.getData.fibNode = null
               fibHeap.removeMin
             }
-            ret = next
-            doRet = true
-            return
+            return next
           }
           if (this.isTerminate(cnode)) {
             if (firstTime == 0) {
@@ -681,11 +682,11 @@ class Gao {
                   rtotalCandidates = 0
                   maxThreshold = 0
                 }
-                return
+                break
               }
               if (EL == 0) {
                 if (totalCandidates >= Parameter.topks) {
-                  return
+                  break
                 }
                 else {
                   totalCandidates = totalCandidates + this.getIncomingEdgeCombations(cnode)
@@ -700,12 +701,10 @@ class Gao {
                 }
               }
             }
-            else return
+            else break
           }
         }
       }
-      hwile
-      if (doRet) return ret
 
       if (this.isTerminate(cnode) && next == null) {
         next = this.generatePath(cnode)
@@ -713,7 +712,7 @@ class Gao {
           next.cnodeSideCost = cnode.sideCost
         }
       }
-      while (fibHeap.isEmpty == false) {
+      while (!fibHeap.isEmpty) {
         fibHeap.min.getData.fibNode = null
         fibHeap.removeMin
       }
@@ -884,6 +883,7 @@ class Gao {
     private def isConstainedIn(paths: ArrayBuffer[Path], newPath: Path): Boolean =
       paths.find(_.isEqual(newPath)).nonEmpty
   }
+
 }
 
 object Gao {
