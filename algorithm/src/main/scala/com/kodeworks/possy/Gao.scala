@@ -10,22 +10,20 @@ class Gao {
 
   class Edge(
               var fromNode: Node,
-              var toNode: Node
+              var toNode: Node,
+              var distance:Int = 0
               ) {
-    var distance = 0
     var sideCost = 0
 
+    //TODO override equals instead
     def equal(edge1: Edge): Boolean =
       edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id
 
-    def reverseEdge: Edge = {
-      val redge: Edge = new Edge(toNode,fromNode)
-      redge.distance = distance
-      redge
-    }
+    def reverseEdge: Edge =
+      new Edge(toNode,fromNode, distance)
 
     override def toString: String =
-      " from=" + fromNode.id + " to=" + toNode.id + " distance=" + distance + " sidetrack=" + sideCost
+      " from=" + fromNode.id + " to=" + toNode.id + " distance=" + distance + " sidecost=" + sideCost
   }
 
   class Node(val id: Int) {
@@ -65,8 +63,7 @@ class Gao {
     }
 
     def addEdge(toNode1: Node, cost: Int) {
-      val newEdge: Edge = new Edge(this, toNode1)
-      newEdge.distance = cost
+      val newEdge: Edge = new Edge(this, toNode1, cost)
       addOutEdgeIntoGraph(newEdge)
       toNode1.addInEdgeIntoGraph(newEdge)
     }
@@ -81,29 +78,9 @@ class Gao {
       edgesInSPT.remove(edgesInSPT.indexOf(edge1))
     }
 
-    def getTotalEdge: Int = {
-      return outEdgesInGraph.size
-    }
-
-    def getToNodesString: ArrayBuffer[String] = {
-      outEdgesInGraph.map(e => String.valueOf(e.toNode.id))
-    }
-
-    def getToNodesList: ArrayBuffer[Node] = {
-      outEdgesInGraph.map(_.toNode)
-    }
-
     def getToNodes: ArrayBuffer[Int] = {
       outEdgesInGraph.map(_.toNode.id)
     }
-
-    def getOutEdgesInGraph = outEdgesInGraph
-
-    def getInEdgesInGraph = inEdgesInGraph
-
-    def getedgesInSPT = edgesInSPT
-
-    def getParent = parent
 
     def getPreNodeID: Int = {
       val cedge: Edge = preEdge
@@ -112,9 +89,8 @@ class Gao {
       else return cedge.fromNode.id
     }
 
-    def getEdgeFromToNodeInSPT(toNodeID: Int): Edge = {
+    def getEdgeFromToNodeInSPT(toNodeID: Int): Edge =
       edgesInSPT.find(_.toNode.id == toNodeID).getOrElse(null)
-    }
 
     def annotateNode(pre: Int, parent: Int): Int = {
       this.parent = parent
@@ -296,12 +272,10 @@ class Gao {
     def nodeNum = size
 
     def getOutEdge(fromID: Int): ArrayBuffer[Edge] =
-      nodes(fromID).getOutEdgesInGraph
+      nodes(fromID).outEdgesInGraph
 
     def getInEdge(toID: Int): ArrayBuffer[Edge] =
-      nodes(toID).getInEdgesInGraph
-
-    def getNodes = nodes
+      nodes(toID).inEdgesInGraph
 
     def getNodeById(id: Int): Node = nodes(id)
 
@@ -320,8 +294,7 @@ class Gao {
       var tmp: Node = fnode
       var cedge: Edge = null
       while (tmp.parent != -1) {
-        cedge = new Edge(tmp, tmp.preEdge.toNode)
-        cedge.distance = tmp.preEdge.distance
+        cedge = new Edge(tmp, tmp.preEdge.toNode, tmp.preEdge.distance)
         tmp = getNodeById(tmp.parent)
         cedge.toNode = tmp
         spath.addEdgeIntoPath(cedge)
@@ -542,8 +515,7 @@ class Gao {
           if (fromNode.fibNode == null) {
             fromNode = dgraph.getNodeById(fromID)
             fromNode.cost = cnode.cost + nextCost
-            nextEdge = new Edge(cnode, fromNode)
-            nextEdge.distance = nextCost
+            nextEdge = new Edge(cnode, fromNode, nextCost)
             fromNode.preEdge = nextEdge
             cnode.addEdgeIntoSPT(nextEdge)
             val n: FibHeapNode[Node] = new FibHeapNode[Node](fromNode, fromNode.cost)
@@ -590,8 +562,7 @@ class Gao {
           if (!activeNodesList.contains(fromNode)) {
             fromNode = dgraph.getNodeById(fromID)
             fromNode.cost = cnode.cost + nextCost
-            nextEdge = new Edge(cnode, fromNode)
-            nextEdge.distance = nextCost
+            nextEdge = new Edge(cnode, fromNode, nextCost)
             fromNode.preEdge = nextEdge
             cnode.addEdgeIntoSPT(nextEdge)
             activeNodesList.append(fromNode)
