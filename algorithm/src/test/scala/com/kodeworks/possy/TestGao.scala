@@ -1,7 +1,7 @@
 package com.kodeworks.possy
 
-import org.junit.{Assert, Test}
-import TestGao._
+import com.kodeworks.possy.TestGao._
+import org.junit.Test
 
 class TestGao {
   @Test

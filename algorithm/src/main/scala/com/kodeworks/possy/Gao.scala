@@ -14,24 +14,8 @@ class Gao {
     var distance: Int = 0
     var sideCost: Int = 0
 
-    def setFromNode(fromNode1: Node) {
-      fromNode = fromNode1
-    }
-
-    def setToNode1(toNode1: Node) {
-      toNode = toNode1
-    }
-
-    def getToNodeID: Int = {
-      return toNode.id
-    }
-
-    def getToNode: Node = {
-      return toNode
-    }
-
-    def equal(edge1: Edge): Boolean = {
-      if (edge1.fromNode.id == this.fromNode.id && edge1.toNode.id == this.toNode.id) {
+     def equal(edge1: Edge): Boolean = {
+      if (edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id) {
         return true
       }
       else {
@@ -41,15 +25,15 @@ class Gao {
 
     def reverseEdge: Edge = {
       val redge: Edge = new Edge
-      redge.fromNode = this.toNode
-      redge.toNode = this.fromNode
-      redge.distance = this.distance
+      redge.fromNode = toNode
+      redge.toNode = fromNode
+      redge.distance = distance
       return redge
     }
 
     override def toString: String = {
       var content: String = ""
-      content = " from=" + this.fromNode.id + " to=" + this.toNode.id + " distance=" + this.distance + " sidetrack=" + this.sideCost
+      content = " from=" + fromNode.id + " to=" + this.toNode.id + " distance=" + this.distance + " sidetrack=" + this.sideCost
       return content
     }
   }
@@ -116,7 +100,7 @@ class Gao {
     }
 
     def getToNodesString: ArrayBuffer[String] = {
-      outEdgesInGraph.map(e => String.valueOf(e.getToNode))
+      outEdgesInGraph.map(e => String.valueOf(e.toNode.id))
     }
 
     def getToNodesList: ArrayBuffer[Node] = {
@@ -124,7 +108,7 @@ class Gao {
     }
 
     def getToNodes: ArrayBuffer[Int] = {
-      outEdgesInGraph.map(_.getToNodeID)
+      outEdgesInGraph.map(_.toNode.id)
     }
 
     def getOutEdgesInGraph = outEdgesInGraph
@@ -143,7 +127,7 @@ class Gao {
     }
 
     def getEdgeFromToNodeInSPT(toNodeID: Int): Edge = {
-      edgesInSPT.find(_.getToNodeID == toNodeID).getOrElse(null)
+      edgesInSPT.find(_.toNode.id == toNodeID).getOrElse(null)
     }
 
     def annotateNode(pre: Int, parent: Int): Int = {
@@ -675,7 +659,7 @@ class Gao {
         if (cnode.edgesInSPT.isEmpty)
           leafNodesList.prepend(cnode)
         for (cedge <- cnode.edgesInSPT) {
-          childNode = cedge.getToNode
+          childNode = cedge.toNode
           childNode.cost = cnode.cost + cedge.distance
           childNode.parent = cnode.id
           wklist.enqueue(childNode)
@@ -1212,7 +1196,6 @@ object Gao {
     gao.Parameter.pruningNodes = pruneNodes
     if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
     else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
-
 
     val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
     spt.constructRevSPTInMem_Fib
