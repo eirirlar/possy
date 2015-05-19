@@ -8,34 +8,24 @@ import scala.collection.mutable.ArrayBuffer
 
 class Gao {
 
-  class Edge {
-    var fromNode: Node = null
-    var toNode: Node = null
-    var distance: Int = 0
-    var sideCost: Int = 0
+  class Edge(
+              var fromNode: Node,
+              var toNode: Node
+              ) {
+    var distance = 0
+    var sideCost = 0
 
-     def equal(edge1: Edge): Boolean = {
-      if (edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id) {
-        return true
-      }
-      else {
-        return false
-      }
-    }
+    def equal(edge1: Edge): Boolean =
+      edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id
 
     def reverseEdge: Edge = {
-      val redge: Edge = new Edge
-      redge.fromNode = toNode
-      redge.toNode = fromNode
+      val redge: Edge = new Edge(toNode,fromNode)
       redge.distance = distance
-      return redge
+      redge
     }
 
-    override def toString: String = {
-      var content: String = ""
-      content = " from=" + fromNode.id + " to=" + this.toNode.id + " distance=" + this.distance + " sidetrack=" + this.sideCost
-      return content
-    }
+    override def toString: String =
+      " from=" + fromNode.id + " to=" + toNode.id + " distance=" + distance + " sidetrack=" + sideCost
   }
 
   class Node(val id: Int) {
@@ -75,19 +65,15 @@ class Gao {
     }
 
     def addEdge(toNode1: Node, cost: Int) {
-      val newEdge: Edge = new Edge
-      newEdge.fromNode = this
-      newEdge.toNode = toNode1
+      val newEdge: Edge = new Edge(this, toNode1)
       newEdge.distance = cost
-      this.addOutEdgeIntoGraph(newEdge)
+      addOutEdgeIntoGraph(newEdge)
       toNode1.addInEdgeIntoGraph(newEdge)
     }
 
     def addChildNode(childNode: Node) {
-      val edge1: Edge = new Edge
-      edge1.fromNode = this
-      edge1.toNode = childNode
-      this.addOutEdgeIntoGraph(edge1)
+      val edge1: Edge = new Edge(this,childNode)
+      addOutEdgeIntoGraph(edge1)
       childNode.addInEdgeIntoGraph(edge1)
     }
 
@@ -120,7 +106,7 @@ class Gao {
     def getParent = parent
 
     def getPreNodeID: Int = {
-      val cedge: Edge = this.preEdge
+      val cedge: Edge = preEdge
       if (cedge == null) return -1
       if (cedge.fromNode eq this) return cedge.toNode.id
       else return cedge.fromNode.id
@@ -167,8 +153,6 @@ class Gao {
     //TODO static id generator may cause problems
     pathID = Path.count
 
-    def getLength = totalDistance
-
     def addEdgeIntoPath(cedge: Edge) {
       edges.append(cedge)
       totalDistance = getTotalDistance
@@ -192,7 +176,7 @@ class Gao {
     }
 
     def isEqual(second: Path): Boolean = {
-      if (this.size != second.size || second.getLength != this.getLength) return false
+      if (this.size != second.size || second.totalDistance != totalDistance) return false
       edges.zip(second.edges).forall(es => es._1.fromNode.id == es._2.fromNode.id
         && es._1.toNode.id == es._2.toNode.id
         && es._1.distance == es._2.distance)
@@ -336,9 +320,7 @@ class Gao {
       var tmp: Node = fnode
       var cedge: Edge = null
       while (tmp.parent != -1) {
-        cedge = new Edge
-        cedge.fromNode = tmp
-        cedge.toNode = tmp.preEdge.toNode
+        cedge = new Edge(tmp, tmp.preEdge.toNode)
         cedge.distance = tmp.preEdge.distance
         tmp = getNodeById(tmp.parent)
         cedge.toNode = tmp
@@ -390,12 +372,12 @@ class Gao {
       var same_len1 = 0
       var same_len2 = 0
       for (p <- topks
-           if p.getLength == cur_len)
+           if p.totalDistance == cur_len)
         same_len1 += 1
 
       for (ps <- candidates;
            p <- ps
-           if p.getLength == cur_len) {
+           if p.totalDistance == cur_len) {
         same_len2 += 1
         same_len2 - 1
       }
@@ -560,9 +542,7 @@ class Gao {
           if (fromNode.fibNode == null) {
             fromNode = dgraph.getNodeById(fromID)
             fromNode.cost = cnode.cost + nextCost
-            nextEdge = new Edge
-            nextEdge.fromNode = cnode
-            nextEdge.toNode = fromNode
+            nextEdge = new Edge(cnode, fromNode)
             nextEdge.distance = nextCost
             fromNode.preEdge = nextEdge
             cnode.addEdgeIntoSPT(nextEdge)
@@ -610,9 +590,7 @@ class Gao {
           if (!activeNodesList.contains(fromNode)) {
             fromNode = dgraph.getNodeById(fromID)
             fromNode.cost = cnode.cost + nextCost
-            nextEdge = new Edge
-            nextEdge.fromNode = cnode
-            nextEdge.toNode = fromNode
+            nextEdge = new Edge(cnode, fromNode)
             nextEdge.distance = nextCost
             fromNode.preEdge = nextEdge
             cnode.addEdgeIntoSPT(nextEdge)
