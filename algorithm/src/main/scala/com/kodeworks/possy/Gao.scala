@@ -1201,15 +1201,18 @@ class Gao {
 }
 
 object Gao {
-  /*
-  lookup - from node index, to node index, cost
-   */
-  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10) = {
+  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10, terminateEarly: Boolean = false, pruneNodes: Boolean = false) = {
     val gao = new Gao
     val graph = new gao.Graph(lookup.size)
     for {(fromNode, edges) <- lookup
          (weight, toNode) <- edges}
       graph.nodes(fromNode).addEdge(graph.nodes(toNode), weight)
+
+    gao.Parameter.earlyTerminate = terminateEarly
+    gao.Parameter.pruningNodes = pruneNodes
+    if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
+    else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+
 
     val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
     spt.constructRevSPTInMem_Fib
