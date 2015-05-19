@@ -1,17 +1,13 @@
 package com.kodeworks.possy
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 class Gao {
-
   class Edge(
               var fromNode: Node,
               var toNode: Node,
-              var distance:Int = 0
+              var distance: Int = 0
               ) {
     var sideCost = 0
 
@@ -20,29 +16,26 @@ class Gao {
       edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id
 
     def reverseEdge: Edge =
-      new Edge(toNode,fromNode, distance)
-
-    override def toString: String =
-      " from=" + fromNode.id + " to=" + toNode.id + " distance=" + distance + " sidecost=" + sideCost
+      new Edge(toNode, fromNode, distance)
   }
 
   class Node(val id: Int) {
+    val outEdgesInGraph = ArrayBuffer[Edge]()
+    val inEdgesInGraph = ArrayBuffer[Edge]()
+    val edgesInSPT = ArrayBuffer[Edge]()
     var fibNode: FibHeapNode[Node] = null
-    var outEdgesInGraph = ArrayBuffer[Edge]()
-    var inEdgesInGraph = ArrayBuffer[Edge]()
-    var edgesInSPT = ArrayBuffer[Edge]()
     var preEdge: Edge = null
     var preEdgeSideCost: Edge = null
     var cost: Int = Int.MaxValue
-    var level: Int = 0
-    var pre: Int = 0
-    var post: Int = 0
-    var parent: Int = 0
-    var sideCost: Int = 0
-    var minSumSideCost: Int = Int.MaxValue
-    var hop: Int = 0
-    var treeLevel: Int = 0
-    var inComingEdges: Int = 0
+    var level = 0
+    var pre = 0
+    var post = 0
+    var parent = 0
+    var sideCost = 0
+    var minSumSideCost = Int.MaxValue
+    var hop = 0
+    var treeLevel = 0
+    var inComingEdges = 0
 
     def addOutEdgeIntoGraph(edge1: Edge) {
       if (!outEdgesInGraph.contains(edge1)) {
@@ -69,7 +62,7 @@ class Gao {
     }
 
     def addChildNode(childNode: Node) {
-      val edge1: Edge = new Edge(this,childNode)
+      val edge1: Edge = new Edge(this, childNode)
       addOutEdgeIntoGraph(edge1)
       childNode.addInEdgeIntoGraph(edge1)
     }
@@ -105,14 +98,6 @@ class Gao {
       currentPre
     }
 
-    def clearForNextSPT {
-      edgesInSPT.clear
-      outEdgesInGraph.foreach(_.sideCost = 0)
-      preEdge = null
-      cost = Int.MaxValue
-      hop = 0
-    }
-
     def setSideCost {
       outEdgesInGraph.foreach(e => e.sideCost = e.distance - cost + e.toNode.cost)
     }
@@ -134,45 +119,27 @@ class Gao {
       totalDistance = getTotalDistance
     }
 
-    def setSourceNode(sourceNode: Node) {
-      this.sourceNode = sourceNode
-    }
-
-    def setCnode(cnode: Node) {
-      this.cnode = cnode
-    }
-
     def getTotalDistance: Int =
       edges.map(_.distance).sum
 
     def addEdgeFirst(cedge: Edge) {
       edges.prepend(cedge)
       //TODO why not add cedge.distance to totaldistance instead?
-      totalDistance = this.getTotalDistance
+      totalDistance = getTotalDistance
     }
 
     def isEqual(second: Path): Boolean = {
-      if (this.size != second.size || second.totalDistance != totalDistance) return false
+      if (this.edges.size != second.edges.size || second.totalDistance != totalDistance) return false
       edges.zip(second.edges).forall(es => es._1.fromNode.id == es._2.fromNode.id
         && es._1.toNode.id == es._2.toNode.id
         && es._1.distance == es._2.distance)
     }
 
-    override def toString: String = {
-      var s = edges.map(_.fromNode.id).mkString("->")
-      if (edges.nonEmpty) {
-        s = s + "->" + edges.last.toNode.id
-      }
-      totalDistance = this.getTotalDistance
-      s + " (cost=" + totalDistance + ")"
-    }
-
     def getNextPaths(topks: ArrayBuffer[Path], toID: Int): ArrayBuffer[Path] = {
       val nexts = ArrayBuffer[Path]()
       val nodes = edges.map(_.fromNode)
-      if (edges.nonEmpty) {
+      if (edges.nonEmpty)
         nodes.append(edges.last.toNode)
-      }
       var next: Path = null
       if (edges.size < 1) return nexts
       var removedEdges: ArrayBuffer[Edge] = null
@@ -190,11 +157,9 @@ class Gao {
             ShortestPathTreeSideCost.maxThreshold = next.cnodeSideCost
           }
         }
-        sptsc.resetSideCost
         i += 1
-
       }
-      return nexts
+      nexts
     }
 
     def getStartIdx(topks: ArrayBuffer[Path]): Int = {
@@ -209,9 +174,9 @@ class Gao {
           var idx = _idx
           var j: Int = 0
           while (j < cpath.edges.size
-            && j < size) {
+            && j < edges.size) {
             cedge1 = cpath.edges(j)
-            cedge2 = get(j)
+            cedge2 = edges(j)
             if (cedge1.fromNode.id != cedge2.fromNode.id) return idx
             else if (j > idx) idx = j
             j += 1
@@ -230,22 +195,16 @@ class Gao {
       for (cpath <- topks) {
         var j = 0
         var break = false
-        while (j < cpath.size && j < idx && !break) {
-          if (!cpath.get(j).equal(edges(j))) break = true
+        while (j < cpath.edges.size && j < idx && !break) {
+          if (!cpath.edges(j).equal(edges(j))) break = true
           else j += 1
         }
         if (j == idx
-          && cpath.size > idx
-          && !nextEdges.contains(cpath.get(idx)))
-          nextEdges.append(cpath.get(idx))
+          && cpath.edges.size > idx
+          && !nextEdges.contains(cpath.edges(idx)))
+          nextEdges.append(cpath.edges(idx))
       }
       nextEdges
-    }
-
-    def size = edges.size
-
-    def get(idx: Int): Edge = {
-      return edges(idx)
     }
 
     def isValidate: Boolean = {
@@ -266,10 +225,8 @@ class Gao {
     var count = 0
   }
 
-  class Graph(var size: Int) {
-    var nodes = ArrayBuffer.tabulate[Node](size)(new Node(_))
-
-    def nodeNum = size
+  class Graph(size: Int) {
+    val nodes = ArrayBuffer.tabulate[Node](size)(new Node(_))
 
     def getOutEdge(fromID: Int): ArrayBuffer[Edge] =
       nodes(fromID).outEdgesInGraph
@@ -278,10 +235,6 @@ class Gao {
       nodes(toID).inEdgesInGraph
 
     def getNodeById(id: Int): Node = nodes(id)
-
-    def clearForNextSPT {
-      nodes.foreach(_.clearForNextSPT)
-    }
 
     def setSideCost {
       nodes.foreach(_.setSideCost)
@@ -302,20 +255,14 @@ class Gao {
       spath
     }
 
-    def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int, methodType: Int): ArrayBuffer[Path] = {
+    def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int): ArrayBuffer[Path] = {
       var spath: Path = getShortestPath(fromNode, toNode)
-      spath.setSourceNode(this.getNodeById(fromNode))
+      spath.sourceNode = getNodeById(fromNode)
       var paths = new TopKPaths(this, spath)
-      var ret: ArrayBuffer[Path] =
-        if (Parameter.earlyTerminate)
-          paths.buildTopKPathsEarly(topk, methodType)
-        else
-          paths.buildTopKPathsNormal(topk, methodType)
-      spath = null
-      paths = null
-      //TODO wtf?!
-      System.gc
-      ret
+      if (Parameter.earlyTerminate)
+        paths.buildTopKPathsEarly(topk)
+      else
+        paths.buildTopKPathsNormal(topk)
     }
 
     def resetNodeCost {
@@ -378,8 +325,6 @@ class Gao {
       val onePath: Path = currentResults(currentPos)
       currentPos += 1
       exactResults += 1
-      if (Parameter.detail && idx >= 1)
-        System.out.println(idx + " : " + onePath.toString)
       idx += 1
       onePath
     }
@@ -416,6 +361,7 @@ class Gao {
     }
 
     def enoughResults(k: Int): Boolean = {
+      if (currentIdx == candidates.size) return true
       val maxLen: Int = (((currentIdx + shortestDistance) * PathCandidates.app).toInt) - shortestDistance
       var sunResults: Int = candidates(currentIdx).size - currentPos
       var i: Int = currentIdx + 1
@@ -425,39 +371,6 @@ class Gao {
       }
       ((exactResults + sunResults) > k)
     }
-
-    def outPutRestResult(topk: Int, curNum: Int) {
-      var cur_num = curNum
-      if (!Parameter.detail) return
-      val maxLen: Int = (((currentIdx + shortestDistance) * PathCandidates.app).toInt) - shortestDistance
-      var count: Int = exactResults
-      var results: ArrayBuffer[Path] = null
-      var onePath: Path = null
-      var i: Int = currentPos
-      while (currentIdx < candidates.size && i < candidates(currentIdx).size) {
-        if (cur_num > topk) return
-        onePath = candidates(currentIdx)(i)
-        System.out.println(count + " : " + onePath.toString)
-        count += 1
-        cur_num += 1
-        i += 1
-      }
-      currentIdx += 1
-      i = currentIdx
-      while (i < maxLen && i < candidates.size) {
-        results = candidates(i)
-        var j: Int = 0
-        while (j < results.size) {
-          if (cur_num > topk) return
-          onePath = results(j)
-          System.out.println(count + " : " + onePath.toString)
-          count += 1
-          cur_num += 1
-          j += 1
-        }
-        i += 1
-      }
-    }
   }
 
   object ShortestPathTree {
@@ -466,18 +379,17 @@ class Gao {
   }
 
   class ShortestPathTree(var dgraph: Graph, var rootID: Int, var direction: Int = 1) {
-    var activeNodesList: ArrayBuffer[Node] = ArrayBuffer[Node]()
-    var nodesFinished = mutable.Set[Node]()
-    var fibHeap: FibHeap[Node] = new FibHeap[Node]
-    var fibnodesHash = mutable.Map[AnyRef, AnyRef]()
+    val activeNodesList: ArrayBuffer[Node] = ArrayBuffer[Node]()
+    val nodesFinished = mutable.Set[Node]()
+    val fibHeap: FibHeap[Node] = new FibHeap[Node]
+    val fibnodesHash = mutable.Map[AnyRef, AnyRef]()
+    val leafNodesList = ArrayBuffer[Node]()
     var costs = ArrayBuffer[Int]()
-    var leafNodesList = ArrayBuffer[Node]()
     var mergeNode: Node = null
     var benefit = 0
     var maxLevel = 0
     var maxCost = 0
     var totalNodes = 0
-    dgraph.clearForNextSPT
     var rootNode: Node = dgraph.getNodeById(rootID)
     rootNode.cost = 0
 
@@ -497,7 +409,7 @@ class Gao {
           nodesFinished.add(cnode)
         }
       }
-      initalCost(dgraph.nodeNum)
+      initalCost(dgraph.nodes.size)
       visitTree
     }
 
@@ -637,7 +549,6 @@ class Gao {
   }
 
   object Parameter {
-    val detail = false
     var earlyTerminate = false
     var pruningNodes = false
     val topks = 10
@@ -680,11 +591,6 @@ class Gao {
     }
 
     private def isValidateCandidate(cnode: Node): Boolean = !removedNodes.contains(cnode)
-
-    def resetSideCost {
-      activeNodesList.foreach(_.sideCost = Int.MaxValue)
-      nodesFinished.foreach(_.sideCost = Int.MaxValue)
-    }
 
     def extendNodesInMemory_Fib(cnode: Node) {
       var toID = 0
@@ -824,7 +730,7 @@ class Gao {
       if (cnode == null || (sourceNode eq cnode)) return null
       val spath: Path = new Path(dgraph)
       selected.edges.takeWhile(_.fromNode ne sourceNode).foreach(spath.addEdgeIntoPath _)
-      spath.setSourceNode(sourceNode)
+      spath.sourceNode = sourceNode
       val second: Path = new Path(dgraph)
       var tmp: Edge = cnode.preEdgeSideCost
       while (tmp.fromNode ne sourceNode) {
@@ -833,7 +739,7 @@ class Gao {
       }
       spath.addEdgeIntoPath(tmp)
       spath.edges.foreach(spath.addEdgeIntoPath _)
-      spath.setCnode(cnode)
+      spath.cnode = cnode
       tmp = cnode.preEdge
       if (tmp != null) {
         tmp = tmp.reverseEdge
@@ -851,15 +757,11 @@ class Gao {
         //TODO what am I supposed to do with this?
         System.out.println("current wrong path is " + spath.toString)
       }
-      return spath
+      spath
     }
 
     private def isRemovedNextEdge(cedge: Edge): Boolean =
       removedEdges.find(_.equal(cedge)).nonEmpty
-
-    def setSideCostTreshold(maximalCost: Int) {
-      sideCostThreshold = maximalCost
-    }
 
     def extendNodesInMemory(cnode: Node) {
       var toID = 0
@@ -883,14 +785,12 @@ class Gao {
                 toNode = dgraph.getNodeById(toID)
                 toNode.preEdgeSideCost = edge
                 toNode.sideCost = cnode.sideCost + nextCost
-                if (toNode.sideCost < 0) {
+                if (toNode.sideCost < 0)
                   toNode.sideCost = Int.MaxValue
-                }
                 toNode.treeLevel = cnode.treeLevel + 1
                 toNode.inComingEdges = 1
-                if (toNode.sideCost <= sideCostThreshold) {
+                if (toNode.sideCost <= sideCostThreshold)
                   activeNodesList.append(toNode)
-                }
               }
               else if (toNode.sideCost > cnode.sideCost + nextCost) {
                 val pnodeID = toNode.preEdgeSideCost.fromNode.id
@@ -910,15 +810,13 @@ class Gao {
       if (before.pre > cnode.pre && before.post < cnode.post)
         return 0
       while (before ne sourceNode) {
-        if (before.pre < cnode.pre && before.post > cnode.post) {
+        if (before.pre < cnode.pre && before.post > cnode.post)
           return 0
-        }
         tmp = before.preEdgeSideCost
         before = tmp.fromNode
       }
-      return 1
+      1
     }
-
   }
 
   object ShortestPathTreeSideCost {
@@ -928,46 +826,28 @@ class Gao {
     var rtotalCandidates = 0
     var EL = 0
     var searchedNodes = 0
-
-    // TODO the fact that this is required prevents parallell execution
-    def resetStaticForNextTime {
-      sideCostThreshold = Int.MaxValue
-      maxThreshold = 0
-      totalCandidates = 0
-    }
-  }
-
-  object TopKPaths {
-    //TODO combine yen and eppstein flag?
-    var COMBINEYENEPS: Int = 1
   }
 
   class TopKPaths(
-                   var dgraph: Graph,
-                   var shortestOne: Path) {
-
-    import TopKPaths._
-
-    var topks = ArrayBuffer[Path]()
-    var candidates = ArrayBuffer[Path]()
+                   val dgraph: Graph,
+                   val shortestOne: Path) {
+    val topks = ArrayBuffer[Path]()
+    val candidates = ArrayBuffer[Path]()
     var toID = 0
 
-    if (shortestOne.size > 0) {
-      val last: Edge = shortestOne.get(shortestOne.size - 1)
+    if (shortestOne.edges.size > 0) {
+      val last: Edge = shortestOne.edges(shortestOne.edges.size - 1)
       toID = last.toNode.id
     }
 
-    def buildTopKPathsEarly(topk: Int, methodType: Int): ArrayBuffer[Path] = {
-      var selected: Path = null
-      selected = shortestOne
-      if (Parameter.detail == true) System.out.println("0 : " + selected.toString)
+    def buildTopKPathsEarly(topk: Int): ArrayBuffer[Path] = {
+      var selected = shortestOne
       topks.append(selected)
       var itr = 0
       val paths = new PathCandidates(selected)
       while (!paths.enoughResults(topk)) {
         var tmp = ArrayBuffer[Path]()
-        if (methodType == COMBINEYENEPS)
-          tmp = selected.getNextPaths(topks, toID)
+        tmp = selected.getNextPaths(topks, toID)
         tmp.foreach(paths.addOneCandidatePathWithoutTesting _)
         selected = paths.getCurrent
         if (selected != null) {
@@ -975,33 +855,26 @@ class Gao {
           itr += 1
         }
       }
-      paths.outPutRestResult(topk, itr)
       topks
     }
 
-    def buildTopKPathsNormal(topk: Int, methodType: Int): ArrayBuffer[Path] = {
-      var selected: Path = null
-      selected = shortestOne
-      if (Parameter.detail == true) System.out.println("Path 0 : " + selected.toString)
+    def buildTopKPathsNormal(topk: Int): ArrayBuffer[Path] = {
+      var selected = shortestOne
       topks.append(selected)
       var itr = 0
       while (itr < topk) {
         var tmp = ArrayBuffer[Path]()
-        if (methodType == TopKPaths.COMBINEYENEPS)
-          tmp = selected.getNextPaths(topks, toID)
+        tmp = selected.getNextPaths(topks, toID)
 
         for (oneCandidate <- tmp
              if !this.isConstainedIn(candidates, oneCandidate)
-               && !this.isConstainedIn(topks, oneCandidate)) {
+               && !this.isConstainedIn(topks, oneCandidate))
           candidates.append(oneCandidate)
-        }
 
         if (candidates.isEmpty) return topks
         selected = candidates.head
         selected = candidates.find(_.totalDistance < selected.totalDistance).getOrElse(selected)
         candidates.remove(candidates.indexOf(selected))
-        if (Parameter.detail)
-          System.out.println("Path " + (itr + 1) + " : " + selected.toString)
         topks.append(selected)
         itr += 1
       }
@@ -1011,126 +884,6 @@ class Gao {
     private def isConstainedIn(paths: ArrayBuffer[Path], newPath: Path): Boolean =
       paths.find(_.isEqual(newPath)).nonEmpty
   }
-
-  class ShortestPath {
-    var queryNumber = 100
-    var simpleTimes1 = 0L
-    var simpleTimes2 = 0L
-    var indexTimes = 0L
-    var simpleDistance1 = 0
-    var simpleDistance2 = 0
-    var indexDistance = 0
-    var source = 0
-    var target = 9999
-
-    def topKShortestPath(graph: Graph) {
-      this.ourMemoryTopK(graph, source, target)
-    }
-
-    def ourMemoryTopK(dgraph: Graph, source: Int, target: Int) {
-      var startTime1 = 0L
-      var startTime2 = 0L
-      var spt: ShortestPathTree = null
-      var content: String = ""
-      System.out.println("Begin our method-------------------")
-      startTime1 = System.currentTimeMillis
-      spt = new ShortestPathTree(dgraph, target, ShortestPathTree.IN)
-      System.out.println("Constructing SPT...")
-      spt.constructRevSPTInMem_Fib
-      System.out.println("Making PrePostParentAnnotations...")
-      spt.makePrePostParentAnnotation
-      content = content + " Build First Shortest Path Tree=" + (System.currentTimeMillis - startTime1)
-      val spttime = (System.currentTimeMillis - startTime1)
-      System.out.println("Setting extra costs...")
-      dgraph.setSideCost
-      startTime2 = System.currentTimeMillis
-      ShortestPathTreeSideCost.resetStaticForNextTime
-      if (!Parameter.pruningNodes) {
-        ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
-      }
-      System.out.println("Building shortest paths...")
-      val sf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-      val date = new Date
-      System.out.println(sf.format(date))
-      var ii = 0
-      var jj = 0
-
-      {
-        jj = 0
-        while (jj <= 1) {
-          {
-            if (jj == 0) Parameter.earlyTerminate = false
-            else Parameter.earlyTerminate = true
-
-            {
-              ii = 0
-              while (ii < 3) {
-                {
-                  System.out.println("===========================================================")
-                  if (ii == 0) {
-                    Parameter.pruningNodes = false
-                    if (Parameter.earlyTerminate == true) {
-                      System.out.println("Testing KR: k-reduction strategy, without pruning optimizations")
-                    }
-                    else {
-                      System.out.println("Testing NM: normal termination, without pruning optimizations")
-                    }
-                  }
-                  if (ii == 1) {
-                    Parameter.pruningNodes = true
-                    ShortestPathTreeSideCost.EL = 0
-                    if (Parameter.earlyTerminate == true) {
-                      System.out.println("Testing KRE: k-reduction with Eager Strategy")
-                    }
-                    else {
-                      System.out.println("Testing NME: normal termination with Eager Strategy")
-                    }
-                  }
-                  if (ii == 2) {
-                    Parameter.pruningNodes = true
-                    ShortestPathTreeSideCost.EL = 1
-                    if (Parameter.earlyTerminate == true) {
-                      System.out.println("Testing KRL: k-reduction with Lazy Strategy")
-                    }
-                    else {
-                      System.out.println("Testing NML: normal termination with Lazy Strategy")
-                    }
-                  }
-                  System.gc
-                  System.out.println("k=" + Parameter.topks + " :")
-                  dgraph.buildTopKPaths(source, target, Parameter.topks, TopKPaths.COMBINEYENEPS)
-                  content = content + "  Locate top k paths=" + (System.currentTimeMillis - startTime2)
-                  content = content + "  total time cost =" + ((System.currentTimeMillis - startTime2) + spttime)
-                  content = content + " \r\n The threshold : " + ShortestPathTreeSideCost.sideCostThreshold
-                  content = content + "\r\n"
-                  System.out.println(content)
-                  startTime2 = System.currentTimeMillis
-                  content = null
-                  System.gc
-                  content = ""
-                  content = content + " Build First Shortest Path Tree=" + spttime
-                  ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
-                  ShortestPathTreeSideCost.totalCandidates = 0
-                  ShortestPathTreeSideCost.rtotalCandidates = 0
-                  ShortestPathTreeSideCost.maxThreshold = 0
-                  ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
-                }
-                ({
-                  ii += 1;
-                  ii - 1
-                })
-              }
-            }
-          }
-          ({
-            jj += 1;
-            jj - 1
-          })
-        }
-      }
-    }
-  }
-
 }
 
 object Gao {
@@ -1150,9 +903,8 @@ object Gao {
     spt.constructRevSPTInMem_Fib
     spt.makePrePostParentAnnotation
     graph.setSideCost
-    gao.ShortestPathTreeSideCost.resetStaticForNextTime
 
-    val topkps = graph.buildTopKPaths(start, end, k - 1 max 0, gao.TopKPaths.COMBINEYENEPS)
+    val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
     topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
   }
 }
