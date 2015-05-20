@@ -795,9 +795,8 @@ class Gao {
     val candidates = ArrayBuffer[Path]()
     var toID = 0
 
-    if (shortestOne.edges.size > 0) {
-      val last: Edge = shortestOne.edges(shortestOne.edges.size - 1)
-      toID = last.toNode.id
+    if (shortestOne.edges.nonEmpty) {
+      toID = shortestOne.edges(shortestOne.edges.size - 1).toNode.id
     }
 
     def buildTopKPathsEarly(topk: Int): ArrayBuffer[Path] = {
