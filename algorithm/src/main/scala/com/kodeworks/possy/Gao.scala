@@ -210,12 +210,12 @@ class Gao {
     }
   }
 
-  class Graph(size: Int) {
-    val nodes = ArrayBuffer.tabulate[Node](size)(new Node(_))
-
-    def setSideCost {
-      nodes.foreach(_.setSideCost)
-    }
+  class Graph(lookup: Map[Int, List[(Int, Int)]]) {
+    val nodes = Array.tabulate[Node](lookup.size)(new Node(_))
+    nodes.foreach(n => {
+      lookup(n.id).foreach(e => n.addEdge(nodes(e._2), e._1))
+      n.setSideCost
+    })
 
     def getShortestPath(fromNode: Int, toNode: Int): Path = {
       var fnode = nodes(fromNode)
@@ -240,14 +240,6 @@ class Gao {
         paths.buildTopKPathsEarly(topk)
       else
         paths.buildTopKPathsNormal(topk)
-    }
-
-    def resetNodeCost {
-      nodes.foreach(n => {
-        n.cost = Int.MaxValue
-        n.parent = -1
-        n.preEdge = null
-      })
     }
   }
 
@@ -764,7 +756,6 @@ class Gao {
     var totalCandidates = 0
     var rtotalCandidates = 0
     var EL = 0
-    var searchedNodes = 0
   }
 
   class TopKPaths(
@@ -774,9 +765,8 @@ class Gao {
     val candidates = ArrayBuffer[Path]()
     var toID = 0
 
-    if (shortestOne.edges.nonEmpty) {
-      toID = shortestOne.edges(shortestOne.edges.size - 1).toNode.id
-    }
+    if (shortestOne.edges.nonEmpty)
+      toID = shortestOne.edges.last.toNode.id
 
     def buildTopKPathsEarly(topk: Int): ArrayBuffer[Path] = {
       var selected = shortestOne
@@ -819,16 +809,12 @@ class Gao {
     private def isConstainedIn(paths: ArrayBuffer[Path], newPath: Path): Boolean =
       paths.find(_.isEqual(newPath)).nonEmpty
   }
-
 }
 
 object Gao {
   def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10, terminateEarly: Boolean = false, pruneNodes: Boolean = false) = {
     val gao = new Gao
-    val graph = new gao.Graph(lookup.size)
-    for {(fromNode, edges) <- lookup
-         (weight, toNode) <- edges}
-      graph.nodes(fromNode).addEdge(graph.nodes(toNode), weight)
+    val graph = new gao.Graph(lookup)
 
     gao.Parameter.earlyTerminate = terminateEarly
     gao.Parameter.pruningNodes = pruneNodes
@@ -838,7 +824,6 @@ object Gao {
     val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
     spt.constructRevSPTInMem_Fib
     spt.makePrePostParentAnnotation
-    graph.setSideCost
 
     val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
     topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
