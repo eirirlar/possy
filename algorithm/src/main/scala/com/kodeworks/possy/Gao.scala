@@ -628,7 +628,8 @@ class Gao {
         second.addEdgeFirst(tmp)
         tmp = tmp.fromNode.preEdgeSideCost
       }
-      spath.edges.foreach(spath.addEdgeIntoPath _)
+      spath.addEdgeIntoPath(tmp)
+      second.edges.foreach(spath.addEdgeIntoPath _)
       tmp = cnode.preEdge
       if (tmp != null) {
         tmp = tmp.reverseEdge
