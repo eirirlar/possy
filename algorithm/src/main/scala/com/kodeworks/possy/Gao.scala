@@ -81,7 +81,7 @@ class Gao {
 
     def annotateNode(pre: Int, parent: Int): Int = {
       this.parent = parent
-      var currentPre: Int = pre
+      var currentPre = pre
       this.pre = currentPre
       edgesInSPT.foreach(e =>
         currentPre = e.toNode.annotateNode(currentPre, id)
@@ -628,7 +628,6 @@ class Gao {
         second.addEdgeFirst(tmp)
         tmp = tmp.fromNode.preEdgeSideCost
       }
-      spath.addEdgeIntoPath(tmp)
       spath.edges.foreach(spath.addEdgeIntoPath _)
       tmp = cnode.preEdge
       if (tmp != null) {
