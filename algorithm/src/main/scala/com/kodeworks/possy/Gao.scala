@@ -12,9 +12,10 @@ class Gao {
               ) {
     var sideCost = 0
 
-    //TODO override equals instead
-    def equal(edge1: Edge): Boolean =
+    override def equals(obj: scala.Any): Boolean = {
+      val edge1 = obj.asInstanceOf[Edge]
       edge1.fromNode.id == fromNode.id && edge1.toNode.id == toNode.id
+    }
 
     def reverseEdge: Edge =
       new Edge(toNode, fromNode, distance)
@@ -115,7 +116,8 @@ class Gao {
       totalDistance += cedge.distance
     }
 
-    def isEqual(second: Path): Boolean = {
+    override def equals(obj: scala.Any): Boolean = {
+      val second = obj.asInstanceOf[Path]
       if (this.edges.size != second.edges.size || second.totalDistance != totalDistance) return false
       edges.zip(second.edges).forall(es => es._1.fromNode.id == es._2.fromNode.id
         && es._1.toNode.id == es._2.toNode.id
@@ -184,7 +186,7 @@ class Gao {
         import scala.util.control.Breaks._
         breakable {
           while (j < cpath.edges.size && j < idx) {
-            if (!cpath.edges(j).equal(edges(j))) break
+            if (cpath.edges(j) != edges(j)) break
             else j += 1
           }
         }
@@ -194,19 +196,6 @@ class Gao {
           nextEdges.append(cpath.edges(idx))
       }
       nextEdges
-    }
-
-    def isValidate: Boolean = {
-      var cedge1: Edge = null
-      var cedge2: Edge = null
-      var i: Int = 0
-      while (i < edges.size - 1) {
-        cedge1 = edges(i)
-        cedge2 = edges(i + 1)
-        if (cedge1.toNode ne cedge2.fromNode) return false
-        i += 1
-      }
-      true
     }
   }
 
@@ -241,10 +230,6 @@ class Gao {
       else
         paths.buildTopKPathsNormal(topk)
     }
-  }
-
-  object PathCandidates {
-    var app: Double = 1
   }
 
   class PathCandidates(shortest: Path) {
@@ -302,7 +287,7 @@ class Gao {
     def addOneCandidatePathWithoutTesting(onePath: Path) {
       for (ps <- candidates;
            p <- ps
-           if p.isEqual(onePath)) return
+           if p == onePath) return
       val idx = onePath.totalDistance - shortestDistance
       if (idx >= candidates.size) {
         var i = candidates.size - 1
@@ -316,20 +301,15 @@ class Gao {
 
     def enoughResults(k: Int): Boolean = {
       if (currentIdx == candidates.size) return true
-      val maxLen: Int = (((currentIdx + shortestDistance) * PathCandidates.app).toInt) - shortestDistance
-      var sunResults: Int = candidates(currentIdx).size - currentPos
-      var i: Int = currentIdx + 1
+      val maxLen = currentIdx + shortestDistance - shortestDistance
+      var sunResults = candidates(currentIdx).size - currentPos
+      var i = currentIdx + 1
       while (i < maxLen && i < candidates.size) {
         sunResults = sunResults + candidates(i).size
         i += 1
       }
-      ((exactResults + sunResults) > k)
+      (exactResults + sunResults) > k
     }
-  }
-
-  object ShortestPathTree {
-    var OUT: Int = 1
-    var IN: Int = 0
   }
 
   class ShortestPathTree(var dgraph: Graph, var rootID: Int, var direction: Int = 1) {
@@ -338,7 +318,7 @@ class Gao {
     val fibHeap: FibHeap[Node] = new FibHeap[Node]
     val fibnodesHash = mutable.Map[AnyRef, AnyRef]()
     val leafNodesList = ArrayBuffer[Node]()
-    var costs = ArrayBuffer[Int]()
+    val costs = ArrayBuffer.fill(dgraph.nodes.size)(Int.MaxValue)
     var mergeNode: Node = null
     var benefit = 0
     var maxCost = 0
@@ -364,25 +344,18 @@ class Gao {
           }
         }
       }
-      initalCost(dgraph.nodes.size)
       visitTree
     }
 
     def extendInNodesInMemory_Fib(cnode: Node) {
-      var fromID = 0
-      var nextCost = 1
-      var fromNode: Node = null
-      var nextEdge: Edge = null
-      var rs = dgraph.nodes(cnode.id).inEdgesInGraph
-      for (edge <- rs) {
-        fromID = edge.fromNode.id
-        nextCost = edge.distance
-        fromNode = dgraph.nodes(fromID)
+      for (edge <- dgraph.nodes(cnode.id).inEdgesInGraph) {
+        val fromID = edge.fromNode.id
+        val nextCost = edge.distance
+        var fromNode = dgraph.nodes(fromID)
         if (fromNode == null || !nodesFinished.contains(fromNode)) {
           if (fromNode.fibNode == null) {
-            fromNode = dgraph.nodes(fromID)
             fromNode.cost = cnode.cost + nextCost
-            nextEdge = new Edge(cnode, fromNode, nextCost)
+            val nextEdge = new Edge(cnode, fromNode, nextCost)
             fromNode.preEdge = nextEdge
             cnode.addEdgeIntoSPT(nextEdge)
             val n: FibHeapNode[Node] = new FibHeapNode[Node](fromNode, fromNode.cost)
@@ -392,7 +365,7 @@ class Gao {
           else if (fromNode.cost > cnode.cost + nextCost) {
             val pnodeID: Int = fromNode.getPreNodeID
             val pnode: Node = dgraph.nodes(pnodeID)
-            nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
+            val nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
             pnode.removeEdgeInSPT(nextEdge)
             nextEdge.toNode = fromNode
             nextEdge.fromNode = cnode
@@ -404,10 +377,6 @@ class Gao {
           }
         }
       }
-    }
-
-    def initalCost(size: Int) {
-      costs = ArrayBuffer.fill(size)(Int.MaxValue)
     }
 
     def getNodeWithMinCost: Node = {
@@ -463,11 +432,10 @@ class Gao {
       totalNodes = 0
       while (!wklist.isEmpty) {
         cnode = wklist.dequeue
-        if (maxCost < cnode.cost) {
+        if (maxCost < cnode.cost)
           maxCost = cnode.cost
-        }
         totalNodes += 1
-        this.costs(cnode.id) = cnode.cost
+        costs(cnode.id) = cnode.cost
         var childNode: Node = null
         edgeCnt = edgeCnt + cnode.edgesInSPT.size
         if (cnode.edgesInSPT.isEmpty)
@@ -684,15 +652,11 @@ class Gao {
       }
       else if (cnode.id != targetNode.id)
         return null
-      if (!spath.isValidate) {
-        //TODO what am I supposed to do with this?
-//        System.out.println("current wrong path is " + spath.toString)
-      }
       spath
     }
 
     private def isRemovedNextEdge(cedge: Edge): Boolean =
-      removedEdges.find(_.equal(cedge)).nonEmpty
+      removedEdges.find(_ == cedge).nonEmpty
 
     def extendNodesInMemory(cnode: Node) {
       var toID = 0
@@ -707,7 +671,7 @@ class Gao {
           toID = edge.toNode.id
           nextCost = edge.sideCost
           toNode = dgraph.nodes(toID)
-          if (!this.isValidateCandidate(toNode)) {
+          if (!isValidateCandidate(toNode)) {
             if (toNode != null && nodesFinished.contains(toNode)) {
               if (toNode.treeLevel > cnode.treeLevel)
                 toNode.inComingEdges += 1
@@ -807,8 +771,9 @@ class Gao {
     }
 
     private def isConstainedIn(paths: ArrayBuffer[Path], newPath: Path): Boolean =
-      paths.find(_.isEqual(newPath)).nonEmpty
+      paths.find(_ == newPath).nonEmpty
   }
+
 }
 
 object Gao {
@@ -821,7 +786,7 @@ object Gao {
     if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
     else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
 
-    val spt = new gao.ShortestPathTree(graph, end, gao.ShortestPathTree.IN)
+    val spt = new gao.ShortestPathTree(graph, end)
     spt.constructRevSPTInMem_Fib
     spt.makePrePostParentAnnotation
 
