@@ -38,6 +38,20 @@ class TestPossy {
   }
 
   @Test
+  def testKShortPossy{
+    println("matrixGrid\n" + matrixGrid)
+    println("path\n" + path)
+    println("matrixValues\n" + matrixValues)
+    val g = matrixGrid
+    val v = matrixValues
+    val s1 = System.nanoTime
+    val ksp = new KShortPossy(matrixGrid)
+    matrixValues.foreach(ksp(_))
+    println((System.nanoTime - s1) + " nanoseconds")
+    println("calcPath\n" + ksp)
+  }
+
+  @Test
   def testDistance {
     Assert.assertEquals(26, MatrixPossy.distance(matrixGrid, 6, 11))
   }
