@@ -755,7 +755,12 @@ class Gao {
 }
 
 object Gao {
-  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10, terminateEarly: Boolean = false, pruneNodes: Boolean = false) = {
+  def kShortestPath(lookup: Map[Int, List[(Int, Int)]],
+                    end: Int,
+                    start: Int = 0,
+                    k: Int = 10,
+                    terminateEarly: Boolean = false,
+                    pruneNodes: Boolean = false): List[(Int, List[Int])] = {
     val gao = new Gao
     val graph = new gao.Graph(lookup)
 
@@ -769,6 +774,6 @@ object Gao {
     spt.makePrePostParentAnnotation
 
     val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
-    topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
+    topkps.map(sp => sp.totalDistance -> (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toList).toList
   }
 }
