@@ -6,27 +6,20 @@ import org.junit.Test
 class TestGao {
   @Test
   def testGao {
-    val nodeIdToIndex = lookup.keys.zipWithIndex.toMap
-    val nodeIndexToId = nodeIdToIndex.map(_.swap)
-    val lookup2: Map[Int, List[(Int, Int)]] = lookup.map(kv => nodeIdToIndex(kv._1) -> kv._2.map(kv => kv._1.toInt -> {
-      val x = nodeIdToIndex(kv._2)
-      x
-    }))
-    def ksp(kspIndexed: List[(Int, List[Int])]) = kspIndexed.map(sp => sp._1 -> sp._2.map(nodeIndexToId(_)))
-    var kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3)
-    println("te=0,pn=0\n" + ksp(kspIndexed).mkString("\n"))
-    kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, true)
-    println("\nte=1,pn=0\n" + ksp(kspIndexed).mkString("\n"))
-    kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, true, true)
-    println("\nte=1,pn=1\n" + ksp(kspIndexed).mkString("\n"))
-    kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, false, true)
-    println("\nte=0,pn=1\n" + ksp(kspIndexed).mkString("\n"))
+    var ksp = Gao.kShortestPath(lookup, -2, -1, 3)
+    println("te=0,pn=0\n" + ksp.mkString("\n"))
+    ksp = Gao.kShortestPath(lookup, -2, -1, 3, true)
+    println("\nte=1,pn=0\n" + ksp.mkString("\n"))
+    ksp = Gao.kShortestPath(lookup, -2, -1, 3, true, true)
+    println("\nte=1,pn=1\n" + ksp.mkString("\n"))
+    ksp = Gao.kShortestPath(lookup, -2, -1, 3, false, true)
+    println("\nte=0,pn=1\n" + ksp.mkString("\n"))
   }
 }
 
 object TestGao {
 
-  val lookup: Map[Int, List[(Double, Int)]] = Map(
+  val lookup: Map[Int, List[(Int, Int)]] = Map(
     -1 -> List((0.0, 2), (0.0, 8)),
     0 -> List((0.0, -2)),
     1 -> List((0.0, -2)),
@@ -36,7 +29,7 @@ object TestGao {
     8 -> List((1.0, 5)),
     3 -> List((2.0, -2)),
     -2 -> Nil
-  )
+  ).map(e => e._1 -> e._2.map(cn => cn._1.toInt -> cn._2))
 
   val grid = List(
     List(1, 0, 2),
