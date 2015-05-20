@@ -801,10 +801,7 @@ class Gao {
       topks.append(selected)
       var itr = 0
       while (itr < topk) {
-        var tmp = ArrayBuffer[Path]()
-        tmp = selected.getNextPaths(topks, toID)
-
-        for (oneCandidate <- tmp
+        for (oneCandidate <- selected.getNextPaths(topks, toID)
              if !this.isConstainedIn(candidates, oneCandidate)
                && !this.isConstainedIn(topks, oneCandidate))
           candidates.append(oneCandidate)
