@@ -98,9 +98,9 @@ class Gao {
 
   class Path(val dgraph: Graph) {
     val edges = new ArrayBuffer[Edge]
-    var totalDistance: Int = 0
+    var totalDistance = 0
     var sourceNode: Node = null
-    var cnodeSideCost: Int = 0
+    var cnodeSideCost = 0
 
     def addEdgeIntoPath(cedge: Edge) {
       edges.append(cedge)
@@ -125,22 +125,17 @@ class Gao {
       val nodes = edges.map(_.fromNode)
       if (edges.nonEmpty)
         nodes.append(edges.last.toNode)
-      var next: Path = null
       if (edges.size < 1) return nexts
-      var removedEdges: ArrayBuffer[Edge] = null
       var i = getStartIdx(topks)
       while (i < nodes.size - 1) {
-        removedEdges = getRemovedEdges(topks, i)
+        val removedEdges = getRemovedEdges(topks, i)
         val sptsc = new ShortestPathTreeSideCost(dgraph, this, removedEdges, nodes(i).id, toID)
-        next = sptsc.buildNextShortestPath
+        val next = sptsc.buildNextShortestPath
         if (next != null) {
           nexts.append(next)
-          //TODO write static variable
           ShortestPathTreeSideCost.rtotalCandidates += 1
-          if (ShortestPathTreeSideCost.maxThreshold < next.cnodeSideCost) {
-            //TODO write static variable
+          if (ShortestPathTreeSideCost.maxThreshold < next.cnodeSideCost)
             ShortestPathTreeSideCost.maxThreshold = next.cnodeSideCost
-          }
         }
         i += 1
       }
@@ -459,11 +454,11 @@ class Gao {
   }
 
   class ShortestPathTreeSideCost(
-                                  var dgraph: Graph,
-                                  var selected: Path,
-                                  var removedEdges: ArrayBuffer[Edge],
-                                  var sourceID: Int,
-                                  var targetID: Int) {
+                                  val dgraph: Graph,
+                                  val selected: Path,
+                                  val removedEdges: ArrayBuffer[Edge],
+                                  val sourceID: Int,
+                                  val targetID: Int) {
 
     import ShortestPathTreeSideCost._
 
@@ -618,8 +613,7 @@ class Gao {
 
     def generatePath(cnode: Node): Path = {
       if (cnode == null || (sourceNode eq cnode)) return null
-      val spath: Path = new Path(dgraph)
-      //TODO source of duplicate first entry on second, third, fourth etc shortest path?
+      val spath = new Path(dgraph)
       selected.edges.takeWhile(_.fromNode ne sourceNode).foreach(spath.addEdgeIntoPath _)
       spath.sourceNode = sourceNode
       val second: Path = new Path(dgraph)
@@ -662,23 +656,21 @@ class Gao {
           toID = edge.toNode.id
           nextCost = edge.sideCost
           toNode = dgraph.nodes(toID)
-          if (!isValidateCandidate(toNode)) {
-            if (toNode != null && nodesFinished.contains(toNode)) {
-            } else {
-              if (!activeNodesList.contains(toNode)) {
-                toNode = dgraph.nodes(toID)
-                toNode.preEdgeSideCost = edge
-                toNode.sideCost = cnode.sideCost + nextCost
-                if (toNode.sideCost < 0)
-                  toNode.sideCost = Int.MaxValue
-                if (toNode.sideCost <= sideCostThreshold)
-                  activeNodesList.append(toNode)
-              }
-              else if (toNode.sideCost > cnode.sideCost + nextCost) {
-                val pnodeID = toNode.preEdgeSideCost.fromNode.id
-                toNode.preEdgeSideCost = edge
-                toNode.sideCost = cnode.sideCost + nextCost
-              }
+          if (!isValidateCandidate(toNode)
+            && (toNode == null || !nodesFinished.contains(toNode))) {
+            if (!activeNodesList.contains(toNode)) {
+              toNode = dgraph.nodes(toID)
+              toNode.preEdgeSideCost = edge
+              toNode.sideCost = cnode.sideCost + nextCost
+              if (toNode.sideCost < 0)
+                toNode.sideCost = Int.MaxValue
+              if (toNode.sideCost <= sideCostThreshold)
+                activeNodesList.append(toNode)
+            }
+            else if (toNode.sideCost > cnode.sideCost + nextCost) {
+              val pnodeID = toNode.preEdgeSideCost.fromNode.id
+              toNode.preEdgeSideCost = edge
+              toNode.sideCost = cnode.sideCost + nextCost
             }
           }
         }
@@ -713,10 +705,10 @@ class Gao {
                    val shortestOne: Path) {
     val topks = ArrayBuffer[Path]()
     val candidates = ArrayBuffer[Path]()
-    var toID = 0
-
-    if (shortestOne.edges.nonEmpty)
-      toID = shortestOne.edges.last.toNode.id
+    val toID =
+      if (shortestOne.edges.nonEmpty)
+        shortestOne.edges.last.toNode.id
+      else 0
 
     def buildTopKPathsEarly(topk: Int): ArrayBuffer[Path] = {
       var selected = shortestOne
