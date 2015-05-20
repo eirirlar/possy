@@ -27,13 +27,12 @@ class Gao {
     var fibNode: FibHeapNode[Node] = null
     var preEdge: Edge = null
     var preEdgeSideCost: Edge = null
-    var cost: Int = Int.MaxValue
+    var cost = Int.MaxValue
     var pre = 0
     var post = 0
     var parent = 0
     var sideCost = 0
     var minSumSideCost = Int.MaxValue
-    var hop = 0
     var treeLevel = 0
     var inComingEdges = 0
 
@@ -76,10 +75,8 @@ class Gao {
     }
 
     def getPreNodeID: Int = {
-      val cedge: Edge = preEdge
-      if (cedge == null) return -1
-      if (cedge.fromNode eq this) return cedge.toNode.id
-      else return cedge.fromNode.id
+      if (preEdge.fromNode eq this) preEdge.toNode.id
+      else preEdge.fromNode.id
     }
 
     def getEdgeFromToNodeInSPT(toNodeID: Int): Edge =
@@ -89,10 +86,9 @@ class Gao {
       this.parent = parent
       var currentPre: Int = pre
       this.pre = currentPre
-      edgesInSPT.foreach(e => {
-        currentPre += 1
+      edgesInSPT.foreach(e =>
         currentPre = e.toNode.annotateNode(currentPre, id)
-      })
+      )
       currentPre += 1
       post = currentPre
       currentPre
@@ -266,8 +262,7 @@ class Gao {
     var exactResults = 0
     var idx = 0
     val shortestDistance = shortest.totalDistance
-    addOneCandidatePath(shortest)
-
+    addOneCandidatePathWithoutTesting(shortest)
 
     def enough(k: Int, cur_num: Int, cur_len: Int, topks: ArrayBuffer[Path]): Boolean = {
       var same_len1 = 0
@@ -310,22 +305,6 @@ class Gao {
       exactResults += 1
       idx += 1
       onePath
-    }
-
-    def addOneCandidatePath(onePath: Path) {
-      val idx = onePath.totalDistance - shortestDistance
-      if (idx >= candidates.size) {
-        var i = candidates.size - 1
-        while (i < idx) {
-          candidates.append(ArrayBuffer[Path]())
-          i += 1
-        }
-      }
-      var results = candidates(idx)
-      for (cpath <- results
-           if cpath.toString.equalsIgnoreCase(onePath.toString))
-        return
-      results.append(onePath)
     }
 
     def addOneCandidatePathWithoutTesting(onePath: Path) {
@@ -715,7 +694,7 @@ class Gao {
         return null
       if (!spath.isValidate) {
         //TODO what am I supposed to do with this?
-        System.out.println("current wrong path is " + spath.toString)
+//        System.out.println("current wrong path is " + spath.toString)
       }
       spath
     }

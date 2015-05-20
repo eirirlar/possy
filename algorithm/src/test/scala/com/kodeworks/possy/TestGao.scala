@@ -12,13 +12,15 @@ class TestGao {
       val x = nodeIdToIndex(kv._2)
       x
     }))
+    def ksp(kspIndexed: Array[Array[Int]]) = kspIndexed.map(_.map(nodeIndexToId(_)).toList).toList
     var kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3)
+    println("te=0,pn=0\n" + ksp(kspIndexed).mkString("\n"))
     kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, true)
+    println("\nte=1,pn=0\n" + ksp(kspIndexed).mkString("\n"))
     kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, true, true)
+    println("\nte=1,pn=1\n" + ksp(kspIndexed).mkString("\n"))
     kspIndexed = Gao.kShortestPath(lookup2, nodeIdToIndex(-2), nodeIdToIndex(-1), 3, false, true)
-    val ksp = kspIndexed.map(_.map(nodeIndexToId(_)).toList).toList
-
-    println("ksp " + ksp.mkString("\n"))
+    println("\nte=0,pn=1\n" + ksp(kspIndexed).mkString("\n"))
   }
 }
 
