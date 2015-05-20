@@ -28,7 +28,6 @@ class Gao {
     var preEdge: Edge = null
     var preEdgeSideCost: Edge = null
     var cost: Int = Int.MaxValue
-    var level = 0
     var pre = 0
     var post = 0
     var parent = 0
@@ -105,28 +104,19 @@ class Gao {
   }
 
   class Path(val dgraph: Graph) {
-    var edges = new ArrayBuffer[Edge]
+    val edges = new ArrayBuffer[Edge]
     var totalDistance: Int = 0
     var sourceNode: Node = null
-    var cnode: Node = null
-    var pathID: Int = 0
     var cnodeSideCost: Int = 0
-    Path.count += 1
-    //TODO static id generator may cause problems
-    pathID = Path.count
 
     def addEdgeIntoPath(cedge: Edge) {
       edges.append(cedge)
-      totalDistance = getTotalDistance
+      totalDistance += cedge.distance
     }
-
-    def getTotalDistance: Int =
-      edges.map(_.distance).sum
 
     def addEdgeFirst(cedge: Edge) {
       edges.prepend(cedge)
-      //TODO why not add cedge.distance to totaldistance instead?
-      totalDistance = getTotalDistance
+      totalDistance += cedge.distance
     }
 
     def isEqual(second: Path): Boolean = {
@@ -224,20 +214,8 @@ class Gao {
     }
   }
 
-  object Path {
-    var count = 0
-  }
-
   class Graph(size: Int) {
     val nodes = ArrayBuffer.tabulate[Node](size)(new Node(_))
-
-    def getOutEdge(fromID: Int): ArrayBuffer[Edge] =
-      nodes(fromID).outEdgesInGraph
-
-    def getInEdge(toID: Int): ArrayBuffer[Edge] =
-      nodes(toID).inEdgesInGraph
-
-    def getNodeById(id: Int): Node = nodes(id)
 
     def setSideCost {
       nodes.foreach(_.setSideCost)
@@ -251,7 +229,7 @@ class Gao {
       var cedge: Edge = null
       while (tmp.parent != -1) {
         cedge = new Edge(tmp, tmp.preEdge.toNode, tmp.preEdge.distance)
-        tmp = getNodeById(tmp.parent)
+        tmp = nodes(tmp.parent)
         cedge.toNode = tmp
         spath.addEdgeIntoPath(cedge)
       }
@@ -260,7 +238,7 @@ class Gao {
 
     def buildTopKPaths(fromNode: Int, toNode: Int, topk: Int): ArrayBuffer[Path] = {
       var spath: Path = getShortestPath(fromNode, toNode)
-      spath.sourceNode = getNodeById(fromNode)
+      spath.sourceNode = nodes(fromNode)
       var paths = new TopKPaths(this, spath)
       if (Parameter.earlyTerminate)
         paths.buildTopKPathsEarly(topk)
@@ -392,10 +370,9 @@ class Gao {
     var costs = ArrayBuffer[Int]()
     var mergeNode: Node = null
     var benefit = 0
-    var maxLevel = 0
     var maxCost = 0
     var totalNodes = 0
-    var rootNode: Node = dgraph.getNodeById(rootID)
+    var rootNode: Node = dgraph.nodes(rootID)
     rootNode.cost = 0
 
     def constructRevSPTInMem_Fib {
@@ -425,14 +402,14 @@ class Gao {
       var nextCost = 1
       var fromNode: Node = null
       var nextEdge: Edge = null
-      var rs = dgraph.getInEdge(cnode.id)
+      var rs = dgraph.nodes(cnode.id).inEdgesInGraph
       for (edge <- rs) {
         fromID = edge.fromNode.id
         nextCost = edge.distance
-        fromNode = dgraph.getNodeById(fromID)
+        fromNode = dgraph.nodes(fromID)
         if (fromNode == null || !nodesFinished.contains(fromNode)) {
           if (fromNode.fibNode == null) {
-            fromNode = dgraph.getNodeById(fromID)
+            fromNode = dgraph.nodes(fromID)
             fromNode.cost = cnode.cost + nextCost
             nextEdge = new Edge(cnode, fromNode, nextCost)
             fromNode.preEdge = nextEdge
@@ -443,7 +420,7 @@ class Gao {
           }
           else if (fromNode.cost > cnode.cost + nextCost) {
             val pnodeID: Int = fromNode.getPreNodeID
-            val pnode: Node = dgraph.getNodeById(pnodeID)
+            val pnode: Node = dgraph.nodes(pnodeID)
             nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
             pnode.removeEdgeInSPT(nextEdge)
             nextEdge.toNode = fromNode
@@ -472,14 +449,14 @@ class Gao {
       var nextCost = 1
       var fromNode: Node = null
       var nextEdge: Edge = null
-      var rs = dgraph.getInEdge(cnode.id)
+      var rs = dgraph.nodes(cnode.id).inEdgesInGraph
       for (edge <- rs) {
         fromID = edge.fromNode.id
         nextCost = edge.distance
-        fromNode = dgraph.getNodeById(fromID)
+        fromNode = dgraph.nodes(fromID)
         if (fromNode == null || nodesFinished.contains(fromNode)) {
           if (!activeNodesList.contains(fromNode)) {
-            fromNode = dgraph.getNodeById(fromID)
+            fromNode = dgraph.nodes(fromID)
             fromNode.cost = cnode.cost + nextCost
             nextEdge = new Edge(cnode, fromNode, nextCost)
             fromNode.preEdge = nextEdge
@@ -488,7 +465,7 @@ class Gao {
           }
           else if (fromNode.cost > cnode.cost + nextCost) {
             val pnodeID: Int = fromNode.getPreNodeID
-            val pnode: Node = dgraph.getNodeById(pnodeID)
+            val pnode: Node = dgraph.nodes(pnodeID)
             nextEdge = pnode.getEdgeFromToNodeInSPT(fromID)
             pnode.removeEdgeInSPT(nextEdge)
             nextEdge.toNode = fromNode
@@ -507,9 +484,7 @@ class Gao {
       wklist.enqueue(rootNode)
       rootNode.cost = 0
       rootNode.parent = -1
-      rootNode.level = 1
       var cnt = 0
-      var tempmaxLevel = 0
       var cnode: Node = null
       var edgeCnt = 0
       var cedge: Edge = null
@@ -531,24 +506,11 @@ class Gao {
           childNode.cost = cnode.cost + cedge.distance
           childNode.parent = cnode.id
           wklist.enqueue(childNode)
-          childNode.level = cnode.level + 1
-          if (childNode.level > tempmaxLevel) {
-            tempmaxLevel = childNode.level
-          }
           cnt += 1
         }
       }
-      this.maxLevel = tempmaxLevel
       cnt
     }
-
-    def getMaxCost = maxCost
-
-    def getMaxHeight = maxLevel
-
-    def getTotalNodes = totalNodes
-
-    def getRoot = rootNode
 
     def makePrePostParentAnnotation {
       rootNode.annotateNode(0, -1)
@@ -570,8 +532,8 @@ class Gao {
 
     import ShortestPathTreeSideCost._
 
-    val sourceNode = dgraph.getNodeById(sourceID)
-    val targetNode = dgraph.getNodeById(targetID)
+    val sourceNode = dgraph.nodes(sourceID)
+    val targetNode = dgraph.nodes(targetID)
     val activeNodesList = ArrayBuffer[Node]()
     val nodesFinished = ArrayBuffer[Node]()
     val removedNodes = ArrayBuffer[Node]()
@@ -603,19 +565,19 @@ class Gao {
       var nextCost = 1
       var toNode: Node = null
       val nextEdge: Edge = null
-      var rs: ArrayBuffer[Edge] = dgraph.getOutEdge(cnode.id)
+      var rs: ArrayBuffer[Edge] = dgraph.nodes(cnode.id).outEdgesInGraph
       for (edge <- rs
            if !isRemovedNextEdge(edge)) {
         toID = edge.toNode.id
         nextCost = edge.sideCost
-        toNode = dgraph.getNodeById(toID)
+        toNode = dgraph.nodes(toID)
         if (isValidateCandidate(toNode)) {
           if (toNode != null && nodesFinished.contains(toNode)) {
             if (toNode.treeLevel > cnode.treeLevel)
               toNode.inComingEdges += 1
           } else {
             if (toNode.fibNode == null) {
-              toNode = dgraph.getNodeById(toID)
+              toNode = dgraph.nodes(toID)
               toNode.preEdgeSideCost = edge
               toNode.sideCost = cnode.sideCost + nextCost
               if (toNode.sideCost < 0)
@@ -725,9 +687,9 @@ class Gao {
     }
 
     def generatePath(cnode: Node): Path = {
-      Path.count += 1
       if (cnode == null || (sourceNode eq cnode)) return null
       val spath: Path = new Path(dgraph)
+      //TODO source of duplicate first entry on second, third, fourth etc shortest path?
       selected.edges.takeWhile(_.fromNode ne sourceNode).foreach(spath.addEdgeIntoPath _)
       spath.sourceNode = sourceNode
       val second: Path = new Path(dgraph)
@@ -738,7 +700,6 @@ class Gao {
       }
       spath.addEdgeIntoPath(tmp)
       spath.edges.foreach(spath.addEdgeIntoPath _)
-      spath.cnode = cnode
       tmp = cnode.preEdge
       if (tmp != null) {
         tmp = tmp.reverseEdge
@@ -768,20 +729,20 @@ class Gao {
       var toNode: Node = null
       val nextEdge: Edge = null
       var rs: ArrayBuffer[Edge] = null
-      rs = dgraph.getOutEdge(cnode.id)
+      rs = dgraph.nodes(cnode.id).outEdgesInGraph
 
       for (edge <- rs) {
         if (!isRemovedNextEdge(edge)) {
           toID = edge.toNode.id
           nextCost = edge.sideCost
-          toNode = dgraph.getNodeById(toID)
+          toNode = dgraph.nodes(toID)
           if (!this.isValidateCandidate(toNode)) {
             if (toNode != null && nodesFinished.contains(toNode)) {
               if (toNode.treeLevel > cnode.treeLevel)
                 toNode.inComingEdges += 1
             } else {
               if (!activeNodesList.contains(toNode)) {
-                toNode = dgraph.getNodeById(toID)
+                toNode = dgraph.nodes(toID)
                 toNode.preEdgeSideCost = edge
                 toNode.sideCost = cnode.sideCost + nextCost
                 if (toNode.sideCost < 0)
