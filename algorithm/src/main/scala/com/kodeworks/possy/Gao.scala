@@ -33,9 +33,6 @@ class Gao {
     var post = 0
     var parent = 0
     var sideCost = 0
-    var minSumSideCost = Int.MaxValue
-    var treeLevel = 0
-    var inComingEdges = 0
 
     def addOutEdgeIntoGraph(edge1: Edge) {
       if (!outEdgesInGraph.contains(edge1)) {
@@ -511,8 +508,6 @@ class Gao {
         toNode = dgraph.nodes(toID)
         if (isValidateCandidate(toNode)) {
           if (toNode != null && nodesFinished.contains(toNode)) {
-            if (toNode.treeLevel > cnode.treeLevel)
-              toNode.inComingEdges += 1
           } else {
             if (toNode.fibNode == null) {
               toNode = dgraph.nodes(toID)
@@ -520,8 +515,6 @@ class Gao {
               toNode.sideCost = cnode.sideCost + nextCost
               if (toNode.sideCost < 0)
                 toNode.sideCost = Int.MaxValue
-              toNode.treeLevel = cnode.treeLevel + 1
-              toNode.inComingEdges = 1
               if (toNode.sideCost <= sideCostThreshold) {
                 val n = new FibHeapNode[Node](toNode, toNode.sideCost)
                 toNode.fibNode = n
@@ -531,7 +524,6 @@ class Gao {
             else if (toNode.sideCost > cnode.sideCost + nextCost) {
               val pnodeID = toNode.preEdgeSideCost.fromNode.id
               toNode.preEdgeSideCost = edge
-              toNode.treeLevel = cnode.treeLevel + 1
               toNode.sideCost = cnode.sideCost + nextCost
               fibHeap.decreaseKey(toNode.fibNode, toNode.sideCost)
             }
@@ -672,8 +664,6 @@ class Gao {
           toNode = dgraph.nodes(toID)
           if (!isValidateCandidate(toNode)) {
             if (toNode != null && nodesFinished.contains(toNode)) {
-              if (toNode.treeLevel > cnode.treeLevel)
-                toNode.inComingEdges += 1
             } else {
               if (!activeNodesList.contains(toNode)) {
                 toNode = dgraph.nodes(toID)
@@ -681,15 +671,12 @@ class Gao {
                 toNode.sideCost = cnode.sideCost + nextCost
                 if (toNode.sideCost < 0)
                   toNode.sideCost = Int.MaxValue
-                toNode.treeLevel = cnode.treeLevel + 1
-                toNode.inComingEdges = 1
                 if (toNode.sideCost <= sideCostThreshold)
                   activeNodesList.append(toNode)
               }
               else if (toNode.sideCost > cnode.sideCost + nextCost) {
                 val pnodeID = toNode.preEdgeSideCost.fromNode.id
                 toNode.preEdgeSideCost = edge
-                toNode.treeLevel = cnode.treeLevel + 1
                 toNode.sideCost = cnode.sideCost + nextCost
               }
             }
