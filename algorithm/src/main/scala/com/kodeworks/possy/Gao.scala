@@ -75,10 +75,9 @@ class Gao {
       outEdgesInGraph.map(_.toNode.id)
     }
 
-    def getPreNodeID: Int = {
+    def getPreNodeID: Int =
       if (preEdge.fromNode eq this) preEdge.toNode.id
       else preEdge.fromNode.id
-    }
 
     def getEdgeFromToNodeInSPT(toNodeID: Int): Edge =
       edgesInSPT.find(_.toNode.id == toNodeID).getOrElse(null)
