@@ -27,9 +27,16 @@ class TestMatrixPossy {
     println("    path : " + path)
     println("pathVals : " + vs)
     val s2 = System.currentTimeMillis()
-    val ksp = new KShortPossy(grid)
-    vs.foreach(ksp(_))
-    println("ksp targets " + ksp.targets + " time " + (System.currentTimeMillis() - s2) + " millis")
+    val ksp = new KShortPossy(grid, 40)
+    var i = 0
+    vs.foreach(v => {
+      val s = System.currentTimeMillis()
+      ksp(v)
+      println("ksp(" + i + ") " + ksp.lastDiscoveries.size + " time " + (System.currentTimeMillis() - s))
+      i += 1
+    })
+    println("time " + (System.currentTimeMillis() - s2) + " millis")
+    println("ksps: " + ksp)
   }
 }
 
