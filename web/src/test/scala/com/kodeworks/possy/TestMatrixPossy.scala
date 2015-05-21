@@ -27,7 +27,7 @@ class TestMatrixPossy {
     println("    path : " + path)
     println("pathVals : " + vs)
     val s2 = System.currentTimeMillis()
-    val ksp = new KShortPossy(grid, 40)
+    val ksp = new KShortPossy(grid, 20)
     var i = 0
     vs.foreach(v => {
       val s = System.currentTimeMillis()
