@@ -755,20 +755,40 @@ class Gao {
 }
 
 object Gao {
-  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10, terminateEarly: Boolean = false, pruneNodes: Boolean = false) = {
-    val gao = new Gao
-    val graph = new gao.Graph(lookup)
+  def kShortestPath(lookup: Map[Int, List[(Int, Int)]],
+                    end: Int,
+                    start: Int = 0,
+                    k: Int = 10,
+                    terminateEarly: Boolean = false,
+                    pruneNodes: Boolean = false,
+                    orderedKeys: Boolean = false): List[(Int, List[Int])] = {
+    def doGao(lookup: Map[Int, List[(Int, Int)]] = lookup,
+              end: Int = end,
+              start: Int = start) = {
+      val gao = new Gao
+      val graph = new gao.Graph(lookup)
 
-    gao.Parameter.earlyTerminate = terminateEarly
-    gao.Parameter.pruningNodes = pruneNodes
-    if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
-    else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+      gao.Parameter.earlyTerminate = terminateEarly
+      gao.Parameter.pruningNodes = pruneNodes
+      if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
+      else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
 
-    val spt = new gao.ShortestPathTree(graph, end)
-    spt.constructRevSPTInMem_Fib
-    spt.makePrePostParentAnnotation
+      val spt = new gao.ShortestPathTree(graph, end)
+      spt.constructRevSPTInMem_Fib
+      spt.makePrePostParentAnnotation
 
-    val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
-    topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
+      val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
+      topkps.map(sp => sp.totalDistance -> (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toList).toList
+    }
+    if (!orderedKeys) {
+      val nodeIdToIndex = lookup.keys.zipWithIndex.toMap
+      val nodeIndexToId = nodeIdToIndex.map(_.swap)
+      doGao(
+        lookup.map(kv => nodeIdToIndex(kv._1) -> kv._2.map(kv => kv._1.toInt -> nodeIdToIndex(kv._2))),
+        nodeIdToIndex(end),
+        nodeIdToIndex(start))
+        .map(sp => sp._1 -> sp._2.map(nodeIndexToId(_)))
+    }
+    else doGao()
   }
 }
