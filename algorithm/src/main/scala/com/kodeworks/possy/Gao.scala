@@ -114,7 +114,7 @@ class Gao {
 
     override def equals(obj: scala.Any): Boolean = {
       val second = obj.asInstanceOf[Path]
-      if (this.edges.size != second.edges.size || second.totalDistance != totalDistance) return false
+      if (edges.size != second.edges.size || second.totalDistance != totalDistance) return false
       edges.zip(second.edges).forall(es => es._1.fromNode.id == es._2.fromNode.id
         && es._1.toNode.id == es._2.toNode.id
         && es._1.distance == es._2.distance)
@@ -552,9 +552,9 @@ class Gao {
             }
             return next
           }
-          if (this.isTerminate(cnode)) {
+          if (isTerminate(cnode)) {
             if (firstTime == 0) {
-              next = this.generatePath(cnode)
+              next = generatePath(cnode)
               if (next != null) {
                 next.cnodeSideCost = cnode.sideCost
                 firstTime += 1
@@ -576,7 +576,7 @@ class Gao {
                   break
                 }
                 else {
-                  totalCandidates = totalCandidates + this.getIncomingEdgeCombations(cnode)
+                  totalCandidates = totalCandidates + getIncomingEdgeCombations(cnode)
                   if (cnode.sideCost > maxThreshold) {
                     maxThreshold = cnode.sideCost
                   }
@@ -593,8 +593,8 @@ class Gao {
         }
       }
 
-      if (this.isTerminate(cnode) && next == null) {
-        next = this.generatePath(cnode)
+      if (isTerminate(cnode) && next == null) {
+        next = generatePath(cnode)
         if (next != null) {
           next.cnodeSideCost = cnode.sideCost
         }
@@ -734,8 +734,8 @@ class Gao {
       var itr = 0
       while (itr < topk) {
         for (oneCandidate <- selected.getNextPaths(topks, toID)
-             if !this.isConstainedIn(candidates, oneCandidate)
-               && !this.isConstainedIn(topks, oneCandidate))
+             if !isConstainedIn(candidates, oneCandidate)
+               && !isConstainedIn(topks, oneCandidate))
           candidates.append(oneCandidate)
 
         if (candidates.isEmpty) return topks
@@ -755,51 +755,20 @@ class Gao {
 }
 
 object Gao {
-  /**
-   * This method combines eppstein and yen to calculate k shortest path of a graph. See http://www.slideshare.net/redhatdb/topk-shortest-path.
-   * @param lookup map of node ids to cost + other node id (edges)
-   * @param end the end node
-   * @param start the start node
-   * @param k how many paths to calculate
-   * @param terminateEarly gao optimization option 1
-   * @param pruneNodes gao optimization option 2
-   * @param orderedKeys gao algorithm requires keys to be tabulated from 0 and upward. If they are, pass true, if not, pass false and this method will re-index the keys to a tabulated key set, then map back to node ids before returning.
-   * @return the k shortest paths and their costs
-   */
-  def kShortestPath(lookup: Map[Int, List[(Int, Int)]],
-                    end: Int,
-                    start: Int = 0,
-                    k: Int = 10,
-                    terminateEarly: Boolean = false,
-                    pruneNodes: Boolean = false,
-                    orderedKeys: Boolean = false): List[(Int, List[Int])] = {
-    def doGao(lookup: Map[Int, List[(Int, Int)]] = lookup,
-              end: Int = end,
-              start: Int = start) = {
-      val gao = new Gao
-      val graph = new gao.Graph(lookup)
+  def kShortestPath(lookup: Map[Int, List[(Int, Int)]], end: Int, start: Int = 0, k: Int = 10, terminateEarly: Boolean = false, pruneNodes: Boolean = false) = {
+    val gao = new Gao
+    val graph = new gao.Graph(lookup)
 
-      gao.Parameter.earlyTerminate = terminateEarly
-      gao.Parameter.pruningNodes = pruneNodes
-      if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
-      else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
+    gao.Parameter.earlyTerminate = terminateEarly
+    gao.Parameter.pruningNodes = pruneNodes
+    if (pruneNodes) gao.ShortestPathTreeSideCost.EL = 1
+    else gao.ShortestPathTreeSideCost.sideCostThreshold = Int.MaxValue
 
-      val spt = new gao.ShortestPathTree(graph, end)
-      spt.constructRevSPTInMem_Fib
-      spt.makePrePostParentAnnotation
+    val spt = new gao.ShortestPathTree(graph, end)
+    spt.constructRevSPTInMem_Fib
+    spt.makePrePostParentAnnotation
 
-      val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
-      topkps.map(sp => sp.totalDistance -> (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toList).toList
-    }
-    if (!orderedKeys) {
-      val nodeIdToIndex = lookup.keys.zipWithIndex.toMap
-      val nodeIndexToId = nodeIdToIndex.map(_.swap)
-      doGao(
-        lookup.map(kv => nodeIdToIndex(kv._1) -> kv._2.map(kv => kv._1.toInt -> nodeIdToIndex(kv._2))),
-        nodeIdToIndex(end),
-        nodeIdToIndex(start))
-        .map(sp => sp._1 -> sp._2.map(nodeIndexToId(_)))
-    }
-    else doGao()
+    val topkps = graph.buildTopKPaths(start, end, k - 1 max 0)
+    topkps.map(sp => (sp.edges.map(e => e.fromNode.id) += sp.edges.last.toNode.id).toArray).toArray
   }
 }
