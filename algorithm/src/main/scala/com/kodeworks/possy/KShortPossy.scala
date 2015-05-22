@@ -52,7 +52,7 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement:Int = allowedMovemen
     this
   }
 
-  override def toString = lastDiscoveries.map(i => grid.rowColumnFromLinearIndex(i._2)).mkString(" ")
+  override def toString = lastDiscoveries.sortBy(_._1).map(i => i._1 -> grid.rowColumnFromLinearIndex(i._2)).mkString(" ")
 }
 
 object KShortPossy {
