@@ -1,16 +1,16 @@
 package com.kodeworks.possy
 
 import breeze.linalg.DenseMatrix
-import com.kodeworks.possy.Dijkstra._
 import com.kodeworks.possy.KShortPossy._
-import com.kodeworks.possy.MatrixPossy.{combine, split, discoverNear, distance}
+import com.kodeworks.possy.MatrixPossy.{combine, discoverNear, distance, split}
 
 import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ListBuffer
 
 class KShortPossy(grid: DenseMatrix[Short], allowedMovement:Int = allowedMovement) {
   val targets = ListBuffer[Short]()
-  var lastDiscoveries: IndexedSeq[(Double, Int)] = null
+  val calculated = ListBuffer[(Int,Int)]()
+  var lastDiscoveries: Seq[(Double, Int)] = null
 
   def apply(target: Short) = {
     val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
@@ -46,8 +46,9 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement:Int = allowedMovemen
         val s = split(c)
         if (0 == s._1) lastDiscoveries(s._2)._2
         else valueMappedToGridIndices(s._2)
-      }).last).toIndexedSeq
+      }).last)
     }
+    calculated += grid.rowColumnFromLinearIndex(lastDiscoveries.head._2)
     targets += target
     this
   }
@@ -61,7 +62,7 @@ object KShortPossy {
   // when targets.size reaches targetsMax and a new target is appended, discard oldest target
   val kayMin = 100
   //kay should be kayMin when targets.size == targetsmMax
-  val allowedMovement = 10
+  val allowedMovement = 30
   // kay should be kayMax when targets is empty, then somehow drop quickly, then slower and slower as more targets are added
   val kayMax = 10000
 

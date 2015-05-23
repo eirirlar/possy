@@ -20,6 +20,7 @@ class PathCalculator extends Actor {
 
   var path = List[(Float, Float)]()
   var dem: SimpleDem = null
+  var kShortPossy:KShortPossy = null
 
   override def receive = {
     case CalcPath(ll@LatLng(lat, lng)) => checkNoDem(ll) onSuccess {
@@ -32,16 +33,21 @@ class PathCalculator extends Actor {
       log.debug("reset calc")
       path = Nil
       dem = null
+      kShortPossy = null
       sender ! Ok
     }
-    case Some(d: SimpleDem) => this.dem = d
+    case Some(d: SimpleDem) => {
+      dem = d
+      kShortPossy = new KShortPossy(d.grid)
+    }
   }
 
   def checkNoDem(ll: LatLng): Future[ActorRef] = {
     val zender = sender
     if (null == dem) possy ? GetClosestDem(ll) map {
       case Some(d: SimpleDem) => {
-        this.dem = d
+        dem = d
+        kShortPossy = new KShortPossy(d.grid)
         zender
       }
     }
@@ -51,9 +57,9 @@ class PathCalculator extends Actor {
   def calcPath(lat: Float, lng: Float): (Long, List[(Float, Float)]) = {
     log.debug("lat lng")
     path = (lat, lng) :: path
-    val elevs = elevations
     val start = System.nanoTime()
-    val calcedPath: List[(Int, Int)] = MatrixPossy.calculatePath(dem.grid, elevs, 10)
+    kShortPossy.apply(elevation(lat, lng))
+    val calcedPath: List[(Int, Int)] = kShortPossy.calculated.toList
     val end = System.nanoTime()
     val time = (end - start) / 1000000L
     val llCalcedPath: List[(Float, Float)] = calcedPath.map(gc => {
