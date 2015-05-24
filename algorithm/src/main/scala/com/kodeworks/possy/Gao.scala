@@ -204,14 +204,7 @@ class Gao {
       var tmp: Node = fnode
       var cedge: Edge = null
       while (tmp.parent != -1) {
-        try {
         cedge = new Edge(tmp, tmp.preEdge.toNode, tmp.preEdge.distance)
-        } catch {
-          case e => {
-            e.printStackTrace
-            throw e
-          }
-        }
         tmp = nodes(tmp.parent)
         cedge.toNode = tmp
         spath.addEdgeIntoPath(cedge)

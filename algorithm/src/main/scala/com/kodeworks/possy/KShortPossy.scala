@@ -7,12 +7,12 @@ import com.kodeworks.possy.MatrixPossy.{combine, discoverNear, distance, split}
 import scala.collection.immutable.IndexedSeq
 import scala.collection.mutable.ListBuffer
 
-class KShortPossy(grid: DenseMatrix[Short], allowedMovement:Int = allowedMovement) {
+class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMovement) {
   val targets = ListBuffer[Short]()
-  val calculated = ListBuffer[(Int,Int)]()
+  val calculated = ListBuffer[(Int, Int)]()
   var lastDiscoveries: Seq[(Double, Int)] = null
 
-  def apply(target: Short) = {
+  def apply(target: Short): KShortPossy = {
     val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
     if (targets.isEmpty) {
       lastDiscoveries = MatrixPossy.discover(grid, target).map(0d -> _)
@@ -39,14 +39,19 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement:Int = allowedMovemen
         distanceToLastDiscoveries.append(cost -> c)
         j += 1
       }
+      //TODO proper handling of valueMappedToGridIndices.isEmpty
+      if (valueMappedToGridIndices.isEmpty) return this
       graph.put(start, distanceToLastDiscoveries.toList)
       graph.put(end, Nil)
-      val ksp: List[(Int, List[Int])] = Gao.kShortestPath(graph.map(a => a._1 -> a._2.map(b => b._1.toInt -> b._2)).toMap, end, start,1000)
+      val ksp: List[(Int, List[Int])] = Gao.kShortestPath(graph.map(a => a._1 -> a._2.map(b => b._1.toInt -> b._2)).toMap, end, start, 5000)
       lastDiscoveries = ksp.map(a => a._1.toDouble -> a._2.slice(1 min a._2.size, a._2.size - 1 max 0).map(c => {
         val s = split(c)
         if (0 == s._1) lastDiscoveries(s._2)._2
         else valueMappedToGridIndices(s._2)
       }).last)
+        //TODO optimize sort/group/map/sort into one loop
+        .sortBy(_._1)
+        .groupBy(_._2).toList.map(a => a._2.head._1 -> a._1).sortBy(_._1)
     }
     calculated += grid.rowColumnFromLinearIndex(lastDiscoveries.head._2)
     targets += target
