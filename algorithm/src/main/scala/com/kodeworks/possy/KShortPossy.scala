@@ -44,6 +44,10 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
       graph.put(start, distanceToLastDiscoveries.toList)
       graph.put(end, Nil)
       val ksp: List[(Int, List[Int])] = Gao.kShortestPath(graph.map(a => a._1 -> a._2.map(b => b._1.toInt -> b._2)).toMap, end, start, 5000)
+      //TODO consider these factors:
+      //"sikksakkhet" of path
+      //distance from last point
+      //distribution in grid - prefer more distributed paths
       lastDiscoveries = ksp.map(a => a._1.toDouble -> a._2.slice(1 min a._2.size, a._2.size - 1 max 0).map(c => {
         val s = split(c)
         if (0 == s._1) lastDiscoveries(s._2)._2
