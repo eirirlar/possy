@@ -54,7 +54,7 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
       //distance from last point
       //distribution in grid - prefer more distributed paths
 
-      //TODO fetch last path as "calculated"
+      //TODO fetch last path as lastPath
       lastDiscoveries = ksp.map(a => a._1.toDouble -> a._2.slice(1 min a._2.size, a._2.size - 1 max 0).map(c => {
         val s = split(c)
         if (0 == s._1) lastDiscoveries(s._2)._2
