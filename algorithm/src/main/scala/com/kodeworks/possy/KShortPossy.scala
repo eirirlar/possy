@@ -14,9 +14,13 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
 
   def apply(target: Short): KShortPossy = {
     if (targets.isEmpty) {
+      //TODO sparsify so that no one is closer than allowedMovement x 2
       lastDiscoveries = MatrixPossy.discover(grid, target).map(0d -> _)
     } else {
-      if(target == targets.last) return this
+      if (target == targets.last) {
+        calculated += calculated.last
+        return this
+      }
       val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
       val valueMappedToGridIndices = ListBuffer[Int]()
       var distanceToLastDiscoveries = ListBuffer[(Double, Int)]()
@@ -39,7 +43,9 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
         j += 1
       }
       //TODO proper handling of valueMappedToGridIndices.isEmpty
-      if (valueMappedToGridIndices.isEmpty) return this
+      if (valueMappedToGridIndices.isEmpty) {
+        return this
+      }
       graph.put(start, distanceToLastDiscoveries.toList)
       graph.put(end, Nil)
       val ksp: List[(Int, List[Int])] = Gao.kShortestPath(graph.map(a => a._1 -> a._2.map(b => b._1.toInt -> b._2)).toMap, end, start, 5000)
@@ -47,6 +53,8 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
       //"sikksakkhet" of path
       //distance from last point
       //distribution in grid - prefer more distributed paths
+
+      //TODO fetch last path as "calculated"
       lastDiscoveries = ksp.map(a => a._1.toDouble -> a._2.slice(1 min a._2.size, a._2.size - 1 max 0).map(c => {
         val s = split(c)
         if (0 == s._1) lastDiscoveries(s._2)._2
