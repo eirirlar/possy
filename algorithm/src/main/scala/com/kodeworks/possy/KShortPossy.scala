@@ -13,18 +13,17 @@ class KShortPossy(grid: DenseMatrix[Short], allowedMovement: Int = allowedMoveme
   var lastDiscoveries: Seq[(Double, Int)] = null
 
   def apply(target: Short): KShortPossy = {
-    val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
     if (targets.isEmpty) {
       lastDiscoveries = MatrixPossy.discover(grid, target).map(0d -> _)
     } else {
+      if(target == targets.last) return this
+      val graph = collection.mutable.Map[Int, List[(Double, Int)]]()
       val valueMappedToGridIndices = ListBuffer[Int]()
       var distanceToLastDiscoveries = ListBuffer[(Double, Int)]()
       var j = 0
       for ((cost, lastDiscovery) <- lastDiscoveries) {
-        val (cost, lastDiscovery) = lastDiscoveries(j)
         val discoveries: IndexedSeq[Int] = discoverNear(grid, target, lastDiscovery, allowedMovement)
         val distanceToDiscoveries = ListBuffer[(Double, Int)]()
-
         var k = 0
         for (discovery <- discoveries) {
           val dist = distance(grid, lastDiscovery, discovery)

@@ -217,6 +217,7 @@ class Gao {
       spath.sourceNode = nodes(fromNode)
       var paths = new TopKPaths(this, spath)
       if (Parameter.earlyTerminate)
+        //TODO this does not work properly. Await answer from Gao. Remove if no answer.
         paths.buildTopKPathsEarly(topk)
       else
         paths.buildTopKPathsNormal(topk)

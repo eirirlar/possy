@@ -1,6 +1,8 @@
 package com.kodeworks.possy
 
 import breeze.linalg.DenseMatrix
+import geokonvert.datums.DatumProvider
+import geokonvert.scala.Geokonvert
 import org.junit.Test
 import TestMatrixPossy._
 
@@ -41,8 +43,33 @@ class TestMatrixPossy {
 }
 
 object TestMatrixPossy {
-  val path = List(
+  val pathX = List(
     (1, 1), (2, 1), (3, 2), (3, 3), (4, 3), (5, 4), (6, 6), (7, 6), (8, 5), (10, 8), (11, 13), (14, 15), (23, 31), (23, 32), (24, 33)
+  )
+  var path = List(
+    (3912,1616),
+    (3912,1616),
+    (3913,1616),
+    (3913,1615),
+    (3914,1615),
+    (3914,1615),
+    (3914,1615),
+    (3915,1615),
+    (3915,1615),
+    (3916,1615),
+    (3916,1615),
+    (3916,1615),
+    (3917,1615),
+    (3917,1615),
+    (3918,1615),
+    (3918,1616),
+    (3919,1616),
+    (3919,1616),
+    (3919,1616),
+    (3920,1616),
+    (3920,1616),
+    (3920,1616),
+    (3921,1616)
   )
 
   def values(grid: DenseMatrix[Short], path: List[(Int, Int)]): List[Short] =
